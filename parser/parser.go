@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corymickelson/exttra/internal/data"
+	"github.com/corymickelson/exttra/data"
 	"github.com/corymickelson/exttra/io/input"
 	"github.com/corymickelson/exttra/pkg"
 	"github.com/corymickelson/exttra/types"

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/corymickelson/exttra/internal/data"
+	"github.com/corymickelson/exttra/data"
 	"github.com/corymickelson/exttra/io/input"
 	"github.com/corymickelson/exttra/io/output"
 	"github.com/corymickelson/exttra/parser"
