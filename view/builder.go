@@ -10,13 +10,13 @@ import (
 type (
 	Opt  func(*view, uint32) (*view, error)
 	view struct {
-		root         pkg.Node
+		root         pkg.Composer
 		selectClause []string
 		keymap       map[uint32]interface{}
 	}
 )
 
-func From(node pkg.Node) Opt {
+func From(node pkg.Composer) Opt {
 	return func(v *view, idx uint32) (*view, error) {
 		if v.root != nil {
 			return nil, errors.New("view/builder: root node has already been set")
@@ -48,7 +48,7 @@ func Where(clause pkg.Operator) Opt {
 
 // Create a new view
 // Views do not mutate the underlying data.
-// Results from the view expression [Where] are reflected only in a nodes nm (Node Map), and version number.
+// Results from the view expression [Where] are reflected only in a nodes nm (Composer Map), and version number.
 // To revert back to the last version of a node, or of the entire tree, call [Reset] to point each node back to it's
 // original mapping.
 // NewView will add a new version and mapping to the node defined in the [From] option.
@@ -70,7 +70,7 @@ func NewView(opts ...Opt) error {
 	if len(i.selectClause) == 0 {
 		return errors.New("view/builder: can not create a view without one or more selected nodes")
 	}
-	vNext := i.root.(pkg.NodeWriter).Version()
+	vNext := i.root.(pkg.Editor).Version()
 	for _, name := range i.selectClause {
 		col := i.root.Find(name)
 		if pkg.IsNil(col) {
@@ -78,7 +78,7 @@ func NewView(opts ...Opt) error {
 		}
 		id, colIdx, _ := col.Id()
 		(*vNext)[id] = false // toggle visible
-		ver := col.(pkg.NodeWriter).Version()
+		ver := col.(pkg.Editor).Version()
 		for rowIdx, v := range i.keymap {
 			iid := uint64(colIdx)<<32 | uint64(rowIdx)
 			(*ver)[iid] = !v.(bool)

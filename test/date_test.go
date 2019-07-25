@@ -43,9 +43,9 @@ func testDate(i interface{}) {
 				t.Fatal(it)
 			}
 		}
-		err          error    = nil
-		null         pkg.Node = nil
-		explicitNull          = "NULL"
+		err          error        = nil
+		null         pkg.Composer = nil
+		explicitNull              = "NULL"
 	)
 	nullable := &pkg.Nullable{Allowed: true, Variants: []string{"null", "NULL", ""}, ReplaceWith: &explicitNull}
 	nullableDate, err := types.NewField(&types.Field{T: pkg.DATE}, nullable)
@@ -100,7 +100,7 @@ func testDate(i interface{}) {
 
 	for _, test := range table {
 		src := generateFile(test.file)
-		s := types.New(
+		s := types.NewSchema(
 			types.Column("A", test.fields[0], true),
 			types.Column("B", test.fields[1], true),
 			types.Column("C", test.fields[2], true),
@@ -112,7 +112,7 @@ func testDate(i interface{}) {
 		if err = p.Validate(nil); err != nil {
 			t.Fatal(err)
 		}
-		var root pkg.Node
+		var root pkg.Composer
 		if root, err = p.Parse(); err != nil {
 			t.Fatal(err)
 		}

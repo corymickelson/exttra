@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corymickelson/exttra/internal/defect"
 	"github.com/corymickelson/exttra/pkg"
 	"github.com/pkg/errors"
 
@@ -51,7 +50,7 @@ func SimpleToString(it interface{}) *string {
 	case int8:
 		val = strconv.Itoa(it.(int))
 	default:
-		defect.LogDefect(&defect.Defect{
+		pkg.LogDefect(&pkg.Defect{
 			Msg: fmt.Sprintf("can not convert \"%v\" to string", it),
 		})
 		val = empty

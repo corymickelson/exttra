@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/corymickelson/exttra/internal/data"
-	"github.com/corymickelson/exttra/internal/defect"
 	"github.com/corymickelson/exttra/io/input"
 	"github.com/corymickelson/exttra/pkg"
 	"github.com/corymickelson/exttra/types"
@@ -23,7 +22,7 @@ type (
 		Parse() error
 	}
 	parser struct {
-		data      pkg.Node
+		data      pkg.Composer
 		input     input.Input
 		headerIdx uint32
 		primary   []uint64
@@ -89,18 +88,18 @@ loop:
 }
 func (p *parser) parseRow(row *[]string) error {
 	currentRow := &p.headerIdx
-	colRow := make([]pkg.Node, 0)
+	colRow := make([]pkg.Composer, 0)
 	for i, field := range *row {
 		var (
 			id     uint64
-			n      pkg.Node                = nil
-			col    pkg.Node                = nil
+			n      pkg.Composer            = nil
+			col    pkg.Composer            = nil
 			err    error                   = nil
 			colDef *types.ColumnDefinition = nil
 			ok                             = false
 		)
 		colIdx := uint64(i)
-		d := &defect.Defect{
+		d := &pkg.Defect{
 			Col: strconv.Itoa(i),
 			Row: strconv.Itoa(int(*currentRow)),
 		}
@@ -132,7 +131,7 @@ func (p *parser) parseRow(row *[]string) error {
 						}
 						colRow = append(colRow, n)
 						if d.Msg != "" {
-							defect.LogDefect(d)
+							pkg.LogDefect(d)
 						}
 						continue
 					}
@@ -147,7 +146,7 @@ func (p *parser) parseRow(row *[]string) error {
 						n, err = data.NewNode(&id, data.V(item.(time.Time)))
 					default:
 						d.Msg = "parser/parse: time was expected"
-						defect.LogDefect(d)
+						pkg.LogDefect(d)
 						n = nilNode
 					}
 				case pkg.FLOAT:
@@ -156,7 +155,7 @@ func (p *parser) parseRow(row *[]string) error {
 						n, err = data.NewNode(&id, data.V(item.(float64)))
 					default:
 						d.Msg = "parser/parse: float was expected"
-						defect.LogDefect(d)
+						pkg.LogDefect(d)
 						n = nilNode
 					}
 				case pkg.CUSTOM:
@@ -167,7 +166,7 @@ func (p *parser) parseRow(row *[]string) error {
 						n, err = data.NewNode(&id, data.V(item.(string)))
 					default:
 						d.Msg = "parser/parse: string was expected"
-						defect.LogDefect(d)
+						pkg.LogDefect(d)
 						n = nilNode
 					}
 				case pkg.BOOL:
@@ -176,7 +175,7 @@ func (p *parser) parseRow(row *[]string) error {
 						n, err = data.NewNode(&id, data.V(item.(bool)))
 					default:
 						d.Msg = "parser/parse: bool was expected"
-						defect.LogDefect(d)
+						pkg.LogDefect(d)
 						n = nilNode
 					}
 				case pkg.INT:
@@ -185,12 +184,12 @@ func (p *parser) parseRow(row *[]string) error {
 						n, err = data.NewNode(&id, data.V(item.(int)))
 					default:
 						d.Msg = "parser/parse: bool was expected"
-						defect.LogDefect(d)
+						pkg.LogDefect(d)
 						n = nilNode
 					}
 				default:
 					d.Msg = "parser/parse: type not defined by pkg.FieldType"
-					defect.LogDefect(d)
+					pkg.LogDefect(d)
 					n = nilNode
 				}
 			}
@@ -202,7 +201,7 @@ func (p *parser) parseRow(row *[]string) error {
 			}
 			colRow = append(colRow, n)
 			if d.Msg != "" {
-				defect.LogDefect(d)
+				pkg.LogDefect(d)
 			}
 		}
 	}
@@ -225,8 +224,8 @@ func (p *parser) parseRow(row *[]string) error {
 func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 	for _, pi := range p.primary {
 		var (
-			col    pkg.Node = nil
-			colIdx uint32   = 0
+			col    pkg.Composer = nil
+			colIdx uint32       = 0
 		)
 		col = p.data.FindById(pi)
 		if pkg.IsNil(col) {
@@ -236,13 +235,13 @@ func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 		candidate := strings.TrimSpace((*row)[colIdx])
 		_, exists := p.keys[uint64(colIdx)][candidate]
 		if exists {
-			defect.LogDefect(&defect.Defect{
+			pkg.LogDefect(&pkg.Defect{
 				Msg: fmt.Sprintf("Duplicate id [%s]", candidate),
 				Row: strconv.Itoa(int(*rowIdx)),
 				Col: strconv.Itoa(int(colIdx)),
 			})
 			p.keys[uint64(colIdx)][candidate]++
-			col.(pkg.NodeWriter).Toggle(pkg.GenNodeId(colIdx, uint32(*rowIdx)))
+			col.(pkg.Editor).Toggle(pkg.GenNodeId(colIdx, uint32(*rowIdx)))
 		} else {
 			p.keys[uint64(colIdx)] = make(map[string]uint8)
 			p.keys[uint64(colIdx)][candidate] = 0
@@ -252,9 +251,9 @@ func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 }
 
 // Parse the body of the file.
-// On success a Node is returned, this node is the root node of the parse tree.
+// On success a Composer is returned, this node is the root node of the parse tree.
 // Otherwise an error is returned
-func (p *parser) Parse() (pkg.Node, error) {
+func (p *parser) Parse() (pkg.Composer, error) {
 	ri := &p.headerIdx
 parse:
 	var (
@@ -380,7 +379,7 @@ func (p *parser) Validate(index *uint32) error {
 	}
 	if reqHeadCount != cc {
 		// todo: missing column send back to sender
-		defect.FatalDefect(&defect.Defect{
+		pkg.FatalDefect(&pkg.Defect{
 			Msg: "Missing required column(s)",
 		})
 	}
@@ -388,11 +387,11 @@ func (p *parser) Validate(index *uint32) error {
 }
 
 // If a primary key is defined on the input,
-// iterate defects column and row to get the key
+// iterate pkg. column and row to get the key
 // to each defect
 // todo: this can be simplified by using the nodes Next/Prev method to move horizontally over the row
 func (p *parser) fillInDefects() {
-	d := defect.New()
+	d := pkg.NewDC()
 	defs := d.Coll()
 	if len(p.primary) > 0 {
 		for _, colIdx := range p.primary {
@@ -400,7 +399,7 @@ func (p *parser) fillInDefects() {
 			if pkg.IsNil(col) {
 				continue
 			}
-			d.(*defect.Defects).Headers = append(d.(*defect.Defects).Headers, col.Name())
+			d.(*pkg.Defects).Headers = append(d.(*pkg.Defects).Headers, col.Name())
 		}
 		for _, v := range defs {
 			if v.Keys == nil {

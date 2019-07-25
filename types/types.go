@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log"
 
-	"github.com/corymickelson/exttra/internal/defect"
 	"github.com/corymickelson/exttra/pkg"
 )
 
@@ -169,7 +168,7 @@ func NewField(field *Field, nilable *pkg.Nullable, opts ...FieldOverride) (*Fiel
 	for _, opt := range opts {
 		field, err = opt(field)
 		if err != nil {
-			defect.FatalDefect(&defect.Defect{
+			pkg.FatalDefect(&pkg.Defect{
 				Msg: err.Error(),
 			})
 		}

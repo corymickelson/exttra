@@ -1,29 +1,9 @@
-package defect
+package pkg
 
 import (
 	"log"
 	"os"
 	"sync"
-)
-
-type (
-	Defector interface {
-		Report() [][]string // in csv format
-		Coll() []*Defect
-	}
-	Defects struct {
-		coll          []*Defect
-		exitInterrupt func([]*Defect)
-		Headers       []string
-		enabled       bool
-	}
-	Opt func(*Defects) (*Defects, error)
-	Defect struct {
-		Row  string
-		Col  string
-		Msg  string
-		Keys map[string]string
-	}
 )
 
 var (
@@ -35,7 +15,7 @@ var (
 // Defector is a single global object
 // [LogDefect] and [FatalDefect] operate
 // on this global object
-func New() Defector {
+func NewDC() Defector {
 	once.Do(func() {
 		instance = new(Defects)
 		instance.coll = make([]*Defect, 0, 100)
@@ -102,7 +82,7 @@ func checkRecord(d *Defect) {
 // it's the responsibility of the function implementation/caller
 // to set sentinel return value(s) and handle nils
 func LogDefect(d *Defect) {
-	defs := New()
+	defs := NewDC()
 	if defs.(*Defects).enabled {
 		checkRecord(d)
 		defs.(*Defects).coll = append(defs.(*Defects).coll, d)
@@ -116,7 +96,7 @@ func LogDefect(d *Defect) {
 // To capture collected defects before the process exits
 // set the FatalExitInterrupt
 func FatalDefect(d *Defect) {
-	defs := New()
+	defs := NewDC()
 	if defs.(*Defects).enabled {
 		checkRecord(d)
 		defs.(*Defects).coll = append(defs.(*Defects).coll, d)

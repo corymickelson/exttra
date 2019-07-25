@@ -6,14 +6,13 @@ import (
 	"log"
 	"os"
 
-	"github.com/corymickelson/exttra/internal/defect"
 	"github.com/corymickelson/exttra/pkg"
 	"github.com/corymickelson/exttra/types"
 )
 
 type (
 	CsvOutput struct {
-		src        pkg.Node
+		src        pkg.Composer
 		dest       interface{}
 		addOns     map[string]func(args interface{}) *string
 		addOnArgs  map[string]interface{}
@@ -28,14 +27,14 @@ type (
 	CustomFormatter func(in *string)
 )
 
-// Create an output for a root node [pkg.Node].
+// Create an output for a root node [pkg.Composer].
 // Root node must come from exttra.parser or exttra.view.
 // Optional properties:
 // 		AddOn: append an additional column where the value is created from the function response
 // 		Alias: add a display name for the column specified in the Alias parameter
 // Returns a CsvOutput object. Nothing has been written at this point.
 // To write call [Flush]
-func CsvOut(data pkg.Node, dest interface{}, opts ...Opt) *CsvOutput {
+func CsvOut(data pkg.Composer, dest interface{}, opts ...Opt) *CsvOutput {
 	i := new(CsvOutput)
 	i.src = data
 	i.dest = make([]interface{}, 0, 10)
@@ -148,7 +147,7 @@ func (i *CsvOutput) Flush() error {
 				rows := buildRows(columns, i.addOns, i.addOnArgs)
 				err := writer.WriteAll(rows)
 				if err != nil {
-					defect.FatalDefect(&defect.Defect{
+					pkg.FatalDefect(&pkg.Defect{
 						Msg: err.Error(),
 					})
 				}
@@ -205,7 +204,7 @@ func buildRows(cols [][]string,
 	}
 	return rows
 }
-func (i *CsvOutput) buildColumn(out chan pkg.Pair, n pkg.Node, colIdx int) {
+func (i *CsvOutput) buildColumn(out chan pkg.Pair, n pkg.Composer, colIdx int) {
 	val := make([]string, n.Max()+2) // add one row for headers, and one as the Max value(row) must be inclusive, ex. if max = 10, then val[10] must not be out of range.
 	id, _, _ := n.Id()
 	if alias, ok := i.alias[id]; ok {
@@ -217,7 +216,7 @@ func (i *CsvOutput) buildColumn(out chan pkg.Pair, n pkg.Node, colIdx int) {
 	if f, ok := i.formatters[id]; ok {
 		format = f
 	}
-	excludes := i.src.(pkg.NodeWriter).Excludes()
+	excludes := i.src.(pkg.Editor).Excludes()
 	for _, v := range n.Children() {
 		_, _, row := v.Id()
 		if excludes[row] {
@@ -235,8 +234,8 @@ func (i *CsvOutput) buildColumn(out chan pkg.Pair, n pkg.Node, colIdx int) {
 		} else {
 			vv := types.SimpleToString(v.Value())
 			if vv == nil || *vv == "" {
-				if !pkg.IsNil(n.(pkg.NodeWriter).Nullable()) && n.(pkg.NodeWriter).Nullable().ReplaceWith != nil {
-					val[row+1] = *n.(pkg.NodeWriter).Nullable().ReplaceWith
+				if !pkg.IsNil(n.(pkg.Editor).Nullable()) && n.(pkg.Editor).Nullable().ReplaceWith != nil {
+					val[row+1] = *n.(pkg.Editor).Nullable().ReplaceWith
 				} else {
 					val[row+1] = ""
 				}

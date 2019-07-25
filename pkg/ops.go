@@ -17,23 +17,23 @@ type (
 	}
 
 	Lt struct {
-		Lhs, Rhs Node
+		Lhs, Rhs Composer
 	}
 
 	Gt struct {
-		Lhs, Rhs Node
+		Lhs, Rhs Composer
 	}
 
 	Eq struct {
-		Lhs, Rhs Node
+		Lhs, Rhs Composer
 	}
 
 	Addition struct {
-		Lhs, Rhs Node
+		Lhs, Rhs Composer
 	}
 
 	Subtraction struct {
-		Lhs, Rhs Node
+		Lhs, Rhs Composer
 	}
 
 	Not struct {
@@ -41,6 +41,9 @@ type (
 	}
 
 	And struct {
+		Lhs, Rhs Operator
+	}
+	Or struct {
 		Lhs, Rhs Operator
 	}
 	If struct {
@@ -52,7 +55,7 @@ type (
 	False struct{}
 )
 
-func assertTypeIn(ts []FieldType, l, r Node) (*FieldType, error) {
+func assertTypeIn(ts []FieldType, l, r Composer) (*FieldType, error) {
 	lOk := false
 	rOk := false
 	var lt FieldType
@@ -82,12 +85,12 @@ func assertTypeIn(ts []FieldType, l, r Node) (*FieldType, error) {
 // Applies the function to each left and right node pair. The right hand side may be a single fixed value,
 // in which case every value on the left is compared to a single right hand side value.
 // Results are gathered in a map where the key is the row index and the value is the result of the function
-func applyToT(t interface{}, out chan map[uint32]interface{}, op func(l, r interface{}) interface{}, l, r Node) {
+func applyToT(t interface{}, out chan map[uint32]interface{}, op func(l, r interface{}) interface{}, l, r Composer) {
 	var (
 		results = make(map[uint32]interface{})
 		fixed   = r.Max() == 0
 	)
-	excludes := l.(NodeWriter).Excludes()
+	excludes := l.(Editor).Excludes()
 	for _, ll := range l.Children() {
 		var (
 			lv = ll.Value()
@@ -170,7 +173,7 @@ func (lt Lt) Apply() (map[uint32]interface{}, FieldType) {
 	var outType FieldType
 	switch *t {
 	case STRING:
-		go applyToT(string(""), out, func(lv, rv interface{}) interface{} { return lv.(string) < rv.(string) }, lt.Lhs, lt.Rhs)
+		go applyToT("", out, func(lv, rv interface{}) interface{} { return lv.(string) < rv.(string) }, lt.Lhs, lt.Rhs)
 		outType = BOOL
 	case INT:
 		fallthrough
@@ -202,7 +205,7 @@ func (gt Gt) Apply() (map[uint32]interface{}, FieldType) {
 	var outType FieldType
 	switch *t {
 	case STRING:
-		go applyToT(string(""), out, func(lv, rv interface{}) interface{} { return lv.(string) > rv.(string) }, gt.Lhs, gt.Rhs)
+		go applyToT("", out, func(lv, rv interface{}) interface{} { return lv.(string) > rv.(string) }, gt.Lhs, gt.Rhs)
 		outType = BOOL
 	case INT:
 		fallthrough
@@ -242,7 +245,7 @@ func (eq Eq) Apply() (map[uint32]interface{}, FieldType) {
 	var outType FieldType
 	switch *t {
 	case STRING:
-		go applyToT(string(""), out, func(lv, rv interface{}) interface{} { return lv.(string) == rv.(string) }, eq.Lhs, eq.Rhs)
+		go applyToT("", out, func(lv, rv interface{}) interface{} { return lv.(string) == rv.(string) }, eq.Lhs, eq.Rhs)
 		outType = BOOL
 	case INT:
 		fallthrough
@@ -279,7 +282,7 @@ func (a Addition) Apply() (map[uint32]interface{}, FieldType) {
 	var outType FieldType
 	switch *t {
 	case STRING:
-		go applyToT(string(""), out, func(lv, rv interface{}) interface{} { return lv.(string) + rv.(string) }, a.Lhs, a.Rhs)
+		go applyToT("", out, func(lv, rv interface{}) interface{} { return lv.(string) + rv.(string) }, a.Lhs, a.Rhs)
 		outType = STRING
 	case INT:
 		fallthrough
@@ -422,22 +425,13 @@ func (c If) Apply() (map[uint32]interface{}, FieldType) {
 						}
 					}
 				}
-				// ts := 0
-				// fs := 0
-				// for _, v := range final {
-				// 	if v.(bool) {
-				// 		ts++
-				// 	} else {
-				// 		fs++
-				// 	}
-				// }
+
 				return final, BOOL
 			}
 		}
 	}
 }
-
-func (a And) Apply() (map[uint32]interface{}, FieldType) {
+func logical(operator Operator, fn func(bool, bool) bool) (map[uint32]interface{}, FieldType) {
 	var (
 		async = func(prop string, out chan Pair, op Operator) {
 			m, t := op.Apply()
@@ -451,8 +445,17 @@ func (a And) Apply() (map[uint32]interface{}, FieldType) {
 		l     map[uint32]interface{} = nil
 		r     map[uint32]interface{} = nil
 	)
-	go async("l", coll, a.Lhs)
-	go async("r", coll, a.Rhs)
+	switch operator.(type) {
+	case And:
+		go async("l", coll, operator.(And).Lhs)
+		go async("r", coll, operator.(And).Rhs)
+	case Or:
+		go async("l", coll, operator.(Or).Lhs)
+		go async("r", coll, operator.(Or).Rhs)
+	default:
+		log.Fatal("logical operations must be And / Or")
+	}
+
 	for {
 		select {
 		case m := <-coll:
@@ -466,11 +469,21 @@ func (a And) Apply() (map[uint32]interface{}, FieldType) {
 					if v == nil || r[i] == nil {
 						final[i] = false
 					} else {
-						final[i] = v.(bool) && r[i].(bool)
+						final[i] = fn(v.(bool), r[i].(bool))
 					}
 				}
 				return final, BOOL
 			}
 		}
 	}
+}
+func (or Or) Apply() (map[uint32]interface{}, FieldType) {
+	return logical(or, func(first bool, second bool) bool {
+		return first || second
+	})
+}
+func (a And) Apply() (map[uint32]interface{}, FieldType) {
+	return logical(a, func(first bool, second bool) bool {
+		return first && second
+	})
 }

@@ -13,14 +13,14 @@ type (
 		id       uint64
 		name     string
 		v        interface{}
-		parent   pkg.Node
+		parent   pkg.Composer
 		t        *pkg.FieldType
-		children map[uint64]pkg.Node
+		children map[uint64]pkg.Composer
 		nm       []map[uint64]bool
 		nullable *pkg.Nullable
 		version  uint
-		next     pkg.Node
-		prev     pkg.Node
+		next     pkg.Composer
+		prev     pkg.Composer
 		min      uint64
 		max      uint64
 	}
@@ -28,14 +28,14 @@ type (
 	Opt func(*node) (*node, error)
 )
 
-// Create a new pkg.Node.
+// Create a new pkg.Composer.
 // Id [id] must be unique, this is is used for views, and writing to an output format.
 // Ids are an unsigned 64 bit integer where the first 32 bits are the column index
 // and the later 32 bits the row index.
 // Optional properties [opts] can also be passed during construction:
 // 		Type: the value type held by this node
 // 		V: the value
-func NewNode(id *uint64, opts ...Opt) (pkg.Node, error) {
+func NewNode(id *uint64, opts ...Opt) (pkg.Composer, error) {
 	var err error = nil
 	i := new(node)
 	if id != nil {
@@ -44,7 +44,7 @@ func NewNode(id *uint64, opts ...Opt) (pkg.Node, error) {
 	i.parent = nil
 	i.nm = make([]map[uint64]bool, 1)
 	i.nm[0] = make(map[uint64]bool)
-	i.children = make(map[uint64]pkg.Node)
+	i.children = make(map[uint64]pkg.Composer)
 	for _, op := range opts {
 		i, err = op(i)
 		if err != nil {
@@ -86,7 +86,7 @@ func Name(name string) Opt {
 	}
 }
 
-func (i *node) Parent() pkg.Node {
+func (i *node) Parent() pkg.Composer {
 	return i.parent
 }
 
@@ -94,7 +94,7 @@ func (i *node) Value() interface{} {
 	return i.v
 }
 
-func (i *node) Children() map[uint64]pkg.Node {
+func (i *node) Children() map[uint64]pkg.Composer {
 	return i.children
 }
 
@@ -102,7 +102,7 @@ func (i *node) Name() string {
 	return i.name
 }
 
-func (i *node) Add(n pkg.Node, b bool) error {
+func (i *node) Add(n pkg.Composer, b bool) error {
 	i.nm[i.version][n.(*node).id] = b
 	i.children[n.(*node).id] = n
 	n.(*node).parent = i
@@ -125,7 +125,7 @@ func (i *node) Nulls() map[uint64]bool {
 func (i *node) Reset() {
 	i.version = 0
 	for _, v := range i.children {
-		v.(pkg.NodeWriter).Reset()
+		v.(pkg.Editor).Reset()
 	}
 }
 
@@ -149,12 +149,12 @@ func (i *node) T() *pkg.FieldType {
 	return i.t
 }
 
-func (i *node) Find(ident interface{}) pkg.Node {
+func (i *node) Find(ident interface{}) pkg.Composer {
 	var (
 		name  *string
 		index *uint64
 		ii    uint64
-		c     pkg.Node
+		c     pkg.Composer
 		ok    = false
 	)
 
@@ -182,7 +182,7 @@ func (i *node) Find(ident interface{}) pkg.Node {
 	return nil
 }
 
-func (i *node) FindById(id uint64) pkg.Node {
+func (i *node) FindById(id uint64) pkg.Composer {
 	if c, ok := i.children[id]; ok {
 		return c
 	} else {
@@ -190,7 +190,7 @@ func (i *node) FindById(id uint64) pkg.Node {
 	}
 }
 
-func (i *node) Next(set ...pkg.Node) pkg.Node {
+func (i *node) Next(set ...pkg.Composer) pkg.Composer {
 	if len(set) > 0 {
 		if pkg.IsNil(i.next) {
 			i.next = set[0]
@@ -198,7 +198,7 @@ func (i *node) Next(set ...pkg.Node) pkg.Node {
 	}
 	return i.next
 }
-func (i *node) Prev(set ...pkg.Node) pkg.Node {
+func (i *node) Prev(set ...pkg.Composer) pkg.Composer {
 	if len(set) > 0 {
 		if pkg.IsNil(i.prev) {
 			i.prev = set[0]

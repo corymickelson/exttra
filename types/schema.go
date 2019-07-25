@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/corymickelson/exttra/internal/defect"
+	"github.com/corymickelson/exttra/pkg"
 )
 
 type (
@@ -61,7 +61,7 @@ func Alias(columnName string, name string) Opt {
 			}
 		}
 		if !found {
-			defect.FatalDefect(&defect.Defect{
+			pkg.FatalDefect(&pkg.Defect{
 				Msg: fmt.Sprintf("column [ %s ] does not exist on this schema", name),
 			})
 		}
@@ -74,7 +74,7 @@ func Alias(columnName string, name string) Opt {
 // Build the schema through optional [opts] Column, Alias.
 // The schema signature is returned.
 // If schema fails a fatal response is thrown
-func New(opts ...Opt) Signature {
+func NewSchema(opts ...Opt) Signature {
 	s := new(Schema)
 	s.columns = make([]*ColumnDefinition, 0, 10)
 	s.dupes = make(map[string][]int)

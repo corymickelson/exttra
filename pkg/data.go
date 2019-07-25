@@ -6,22 +6,22 @@ type (
 		Variants    []string
 		ReplaceWith *string
 	}
-	Node interface {
+	Composer interface {
 		// Get the parent of this node. If parent is nil, this node is the root node.
-		Parent() Node
+		Parent() Composer
 		// Get the value of this node.
 		Value() interface{}
 		// Get the value type of this node.
 		T() *FieldType
 		// Get this nodes children as a map[node id]node ptr.
-		Children() map[uint64]Node
+		Children() map[uint64]Composer
 		// Find a child node by either name of id.
 		// If id is available use [FindById].
 		// If the node is not found nil is returned.
-		Find(ident interface{}) Node
+		Find(ident interface{}) Composer
 		// Get a child node by id.
 		// If the id is not found nil is returned.
-		FindById(uint64) Node
+		FindById(uint64) Composer
 		// Get the display name of the node. If none an empty string is returned.
 		Name() string
 		// Get the unique id of this cell.
@@ -35,17 +35,17 @@ type (
 		Id() (uint64, uint32, uint32)
 		// Add a new node to this nodes child collection.
 		// Set [b] = true if this node should be hidden from in the output
-		Add(Node, bool) error
-		Next(set ...Node) Node
-		Prev(set ...Node) Node
+		Add(Composer, bool) error
+		Next(set ...Composer) Composer
+		Prev(set ...Composer) Composer
 		Min() uint64
 		Max() uint64
 		Nulls() map[uint64]bool
 		// Set the version back to 0 for this node and all it's children
 		// Reset()
 	}
-	NodeWriter interface {
-		Node
+	Editor interface {
+		Composer
 		// Create a new version.
 		// Increment version number, and create a new nodemap/nilmap
 		// a reference of this nilmap is returned to the caller so they may update as needed
@@ -57,6 +57,23 @@ type (
 		Excluded(id uint64) (bool, error)
 		Reset()
 		Nullable() *Nullable
+	}
+	Defector interface {
+		Report() [][]string // in csv format
+		Coll() []*Defect
+	}
+	Defects struct {
+		coll          []*Defect
+		exitInterrupt func([]*Defect)
+		Headers       []string
+		enabled       bool
+	}
+	Opt    func(*Defects) (*Defects, error)
+	Defect struct {
+		Row  string
+		Col  string
+		Msg  string
+		Keys map[string]string
 	}
 )
 
