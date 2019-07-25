@@ -5,7 +5,7 @@ import (
 	"io"
 	"log"
 
-	"exttra/types"
+	"github.com/corymickelson/exttra/types"
 )
 
 type Input interface {

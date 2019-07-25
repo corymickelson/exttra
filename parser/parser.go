@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"exttra/internal/data"
-	"exttra/internal/defect"
-	"exttra/io/input"
-	"exttra/pkg"
-	"exttra/types"
+	"github.com/corymickelson/exttra/internal/data"
+	"github.com/corymickelson/exttra/internal/defect"
+	"github.com/corymickelson/exttra/io/input"
+	"github.com/corymickelson/exttra/pkg"
+	"github.com/corymickelson/exttra/types"
 	"github.com/pkg/errors"
 )
 
@@ -52,7 +52,7 @@ func (p *parser) readRow() *[]string {
 	if err != nil {
 		if err == io.EOF {
 			if len(p.primary) > 0 {
-				// p.fillInDefects()
+				p.fillInDefects()
 			}
 			return nil
 		} else {
@@ -69,7 +69,7 @@ func (p *parser) readRow() *[]string {
 	}
 	if !process || len(row) == 0 {
 		if len(p.primary) > 0 {
-			// p.fillInDefects()
+			p.fillInDefects()
 		}
 		return nil
 	}
@@ -99,15 +99,16 @@ func (p *parser) parseRow(row *[]string) error {
 			colDef *types.ColumnDefinition = nil
 			ok                             = false
 		)
-		colIdx := uint64(i + 1)
+		colIdx := uint64(i)
 		d := &defect.Defect{
-			Col: strconv.Itoa(int(colIdx)),
+			Col: strconv.Itoa(i),
 			Row: strconv.Itoa(int(*currentRow)),
 		}
-		if col, ok = p.data.Children()[colIdx]; !ok {
+		colId := pkg.GenNodeId(uint32(colIdx), uint32(0))
+		if col, ok = p.data.Children()[colId]; !ok {
 			continue
 		} else {
-			colDef = p.colDef(colIdx, p.input.GetSchema().(*types.Schema).Cols())
+			colDef = p.colDef(colId, p.input.GetSchema().(*types.Schema).Cols())
 			if colDef == nil {
 				return errors.New(fmt.Sprint("parser/Parse: schema column definition not found for index %l", colIdx))
 			}
@@ -227,24 +228,24 @@ func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 			col    pkg.Node = nil
 			colIdx uint32   = 0
 		)
-		col = p.data.FindById(pi + 1)
+		col = p.data.FindById(pi)
 		if pkg.IsNil(col) {
 			return errors.New("parser/parser: primary key column not found")
 		}
 		_, colIdx, _ = col.Id()
-		candidate := strings.TrimSpace((*row)[colIdx-1])
-		_, exists := p.keys[uint64(colIdx-1)][candidate]
+		candidate := strings.TrimSpace((*row)[colIdx])
+		_, exists := p.keys[uint64(colIdx)][candidate]
 		if exists {
 			defect.LogDefect(&defect.Defect{
 				Msg: fmt.Sprintf("Duplicate id [%s]", candidate),
 				Row: strconv.Itoa(int(*rowIdx)),
-				Col: strconv.Itoa(int(colIdx - 1)),
+				Col: strconv.Itoa(int(colIdx)),
 			})
-			p.keys[uint64(colIdx-1)][candidate]++
-			col.(pkg.NodeModifier).Toggle(pkg.GenNodeId(colIdx, uint32(*rowIdx)))
+			p.keys[uint64(colIdx)][candidate]++
+			col.(pkg.NodeWriter).Toggle(pkg.GenNodeId(colIdx, uint32(*rowIdx)))
 		} else {
-			p.keys[uint64(colIdx-1)] = make(map[string]uint8)
-			p.keys[uint64(colIdx-1)][candidate] = 0
+			p.keys[uint64(colIdx)] = make(map[string]uint8)
+			p.keys[uint64(colIdx)][candidate] = 0
 		}
 	}
 	return nil
@@ -357,13 +358,13 @@ func (p *parser) Validate(index *uint32) error {
 			// todo: how to handle required fields that are duplicated
 			return nil
 		}
+		id := pkg.GenNodeId(uint32(i), 0)
 		if col.Unique {
-			p.primary = append(p.primary, i)
+			p.primary = append(p.primary, id)
 		}
-		col.Index = i + 1
-		cid := i + 1
-		if n, err := data.NewNode(&cid,
-			data.Nullable(col.Field.Nil.Allowed),
+		col.Index = id
+		if n, err := data.NewNode(&id,
+			data.Nullable(col.Field.Nil),
 			data.Name(field),
 			data.Type(&col.Field.T)); err != nil {
 			log.Fatalf(err.Error())
@@ -395,7 +396,7 @@ func (p *parser) fillInDefects() {
 	defs := d.Coll()
 	if len(p.primary) > 0 {
 		for _, colIdx := range p.primary {
-			col := p.data.FindById(colIdx + 1)
+			col := p.data.FindById(colIdx)
 			if pkg.IsNil(col) {
 				continue
 			}
@@ -414,11 +415,12 @@ func (p *parser) fillInDefects() {
 				continue
 			}
 			for _, pi := range p.primary {
-				col := p.data.FindById(pi + 1)
+				col := p.data.FindById(pi)
+				_, colIdx, _ := col.Id()
 				if pkg.IsNil(col) {
 					continue
 				}
-				id := uint64((pi+1)<<32) | uint64(rowIdx+1)
+				id := pkg.GenNodeId(colIdx, uint32(rowIdx))
 				row := col.FindById(id)
 				if row == nil {
 					continue

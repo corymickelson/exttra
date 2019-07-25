@@ -12,8 +12,7 @@ type (
 	// Any fixed or null values must be on the right hand side
 	Operator interface {
 		// applies the two nodes with an expression.
-		// the results are an map with the row as the index and the resulting
-		// value as the map[index] = value
+		// this results in a map with the row as the index and the expression result as the value
 		Apply() (map[uint32]interface{}, FieldType)
 	}
 
@@ -88,7 +87,7 @@ func applyToT(t interface{}, out chan map[uint32]interface{}, op func(l, r inter
 		results = make(map[uint32]interface{})
 		fixed   = r.Max() == 0
 	)
-	excludes := l.(NodeModifier).Excludes()
+	excludes := l.(NodeWriter).Excludes()
 	for _, ll := range l.Children() {
 		var (
 			lv = ll.Value()
@@ -108,8 +107,7 @@ func applyToT(t interface{}, out chan map[uint32]interface{}, op func(l, r inter
 				results[row] = false
 				continue
 			}
-			rid := uint64(rcol)<<32 | uint64(row)
-			rv = r.FindById(rid).Value()
+			rv = r.FindById(GenNodeId(rcol, row)).Value()
 		}
 
 		switch t.(type) {
@@ -231,7 +229,7 @@ func (eq Eq) Apply() (map[uint32]interface{}, FieldType) {
 	if eq.Rhs.Value() == nil {
 		nm := make(map[uint32]interface{})
 		for i, v := range eq.Lhs.Nulls() {
-			row := uint32(i&0xFFFFFFFF) - 1
+			row := uint32(i & 0xFFFFFFFF)
 			nm[row] = v
 		}
 		return nm, BOOL

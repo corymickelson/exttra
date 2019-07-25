@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"exttra/internal/defect"
+	"github.com/corymickelson/exttra/internal/defect"
 )
 
 type (

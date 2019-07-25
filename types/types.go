@@ -4,23 +4,18 @@ import (
 	"errors"
 	"log"
 
-	"exttra/internal/defect"
-	"exttra/pkg"
+	"github.com/corymickelson/exttra/internal/defect"
+	"github.com/corymickelson/exttra/pkg"
 )
 
 type (
-	Prop     int
-	Nullable struct {
-		Allowed     bool
-		Variants    []string
-		ReplaceWith *string
-	}
+	Prop int
 
 	FieldOverride func(*Field) (*Field, error)
 
 	Field struct {
 		T         pkg.FieldType
-		Nil       *Nullable
+		Nil       *pkg.Nullable
 		convert   pkg.FieldLevelConverter
 		toString  pkg.StringifyField
 		Extension pkg.FieldExtension
@@ -130,7 +125,7 @@ func Override(m Prop, fn interface{}) FieldOverride {
 }
 
 // Create a new field.
-func NewField(field *Field, nilable *Nullable, opts ...FieldOverride) (*Field, error) {
+func NewField(field *Field, nilable *pkg.Nullable, opts ...FieldOverride) (*Field, error) {
 	var err error = nil
 	if field == nil || nilable == nil {
 		return nil, errors.New("a new field requires a Field, and Nullable")

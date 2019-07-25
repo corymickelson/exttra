@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"exttra/pkg"
+	"github.com/corymickelson/exttra/pkg"
 )
 
 type (
@@ -17,7 +17,7 @@ type (
 		t        *pkg.FieldType
 		children map[uint64]pkg.Node
 		nm       []map[uint64]bool
-		nullable bool
+		nullable *pkg.Nullable
 		version  uint
 		next     pkg.Node
 		prev     pkg.Node
@@ -54,9 +54,9 @@ func NewNode(id *uint64, opts ...Opt) (pkg.Node, error) {
 	return i, nil
 }
 
-func Nullable(b bool) Opt {
+func Nullable(nullable *pkg.Nullable) Opt {
 	return func(n *node) (*node, error) {
-		n.nullable = b
+		n.nullable = nullable
 		return n, nil
 	}
 }
@@ -125,7 +125,7 @@ func (i *node) Nulls() map[uint64]bool {
 func (i *node) Reset() {
 	i.version = 0
 	for _, v := range i.children {
-		v.Reset()
+		v.(pkg.NodeWriter).Reset()
 	}
 }
 
@@ -140,16 +140,9 @@ func (i *node) Version() *map[uint64]bool {
 }
 
 func (i *node) Id() (uint64, uint32, uint32) {
-	if pkg.IsNil(i.parent) { // root node
-		return 0, 0, 0
-	} else if !pkg.IsNil(i.parent) && pkg.IsNil(i.parent.Parent()) { // column node
-		return i.id, uint32(i.id), 0
-	} else { // field node
-		col := uint32(i.id << 32)
-		row := uint32(i.id & 0xFFFFFFFF)
-		return i.id, col, row
-	}
-
+	col := uint32(i.id >> 32)
+	row := uint32(i.id & 0xFFFFFFFF)
+	return i.id, col, row
 }
 
 func (i *node) T() *pkg.FieldType {
@@ -226,33 +219,36 @@ func (i *node) Excluded(id uint64) (bool, error) {
 	}
 }
 
-
 func (i *node) Excludes() []bool {
 	var (
-		n               = i
+		root            = i
 		excludes []bool = nil
 	)
 	// Get the root node.
 	for {
-		if pkg.IsNil(n.parent) {
+		if pkg.IsNil(root.parent) {
 			break
 		} else {
-			n = n.parent.(*node)
+			root = root.parent.(*node)
 		}
 	}
-	for _, v := range n.children {
+	for _, col := range root.children {
 		if excludes == nil {
-			excludes = make([]bool, v.(*node).max+1)
+			excludes = make([]bool, col.(*node).max+1)
 		}
-		if v.(*node).nullable {
+		if col.(*node).nullable.Allowed {
 			continue
 		}
-		for _, vv := range v.Children() {
+		for _, vv := range col.Children() {
 			id, _, row := vv.Id()
-			if ex, _ := v.(*node).Excluded(id); ex {
+			if ex, _ := col.(*node).Excluded(id); ex {
 				excludes[row] = true
 			}
 		}
 	}
 	return excludes
+}
+
+func (i *node) Nullable() *pkg.Nullable {
+	return i.nullable
 }

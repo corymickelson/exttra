@@ -1,6 +1,11 @@
 package pkg
 
 type (
+	Nullable struct {
+		Allowed     bool
+		Variants    []string
+		ReplaceWith *string
+	}
 	Node interface {
 		// Get the parent of this node. If parent is nil, this node is the root node.
 		Parent() Node
@@ -21,8 +26,12 @@ type (
 		Name() string
 		// Get the unique id of this cell.
 		// Id is composed of two 32 bit integers.
-		// Id will return the 64bit container, the two 32 bit unsigned
-		// integers (col, row), and an error if applicable
+		// Id will return the 64bit container, with two 32 bit unsigned
+		// integers (col, row).
+		// It is possible to get two nodes with the same Id, this is only true
+		// for the root node, and the left most node at child[0]. Due to this circumstance,
+		// if using the Id for finding a nodes placement, one should first check that
+		// the current node is not the root (a root's parent is nil)
 		Id() (uint64, uint32, uint32)
 		// Add a new node to this nodes child collection.
 		// Set [b] = true if this node should be hidden from in the output
@@ -33,9 +42,9 @@ type (
 		Max() uint64
 		Nulls() map[uint64]bool
 		// Set the version back to 0 for this node and all it's children
-		Reset()
+		// Reset()
 	}
-	NodeModifier interface {
+	NodeWriter interface {
 		Node
 		// Create a new version.
 		// Increment version number, and create a new nodemap/nilmap
@@ -46,6 +55,8 @@ type (
 		// Array index is the row number; true should be excluded and false kept
 		Excludes() []bool
 		Excluded(id uint64) (bool, error)
+		Reset()
+		Nullable() *Nullable
 	}
 )
 

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"exttra/internal/defect"
-	"exttra/pkg"
+	"github.com/corymickelson/exttra/internal/defect"
+	"github.com/corymickelson/exttra/pkg"
 	"github.com/pkg/errors"
 
 	"github.com/araddon/dateparse"

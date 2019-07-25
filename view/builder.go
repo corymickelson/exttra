@@ -3,14 +3,14 @@ package view
 import (
 	"fmt"
 
-	"exttra/pkg"
+	"github.com/corymickelson/exttra/pkg"
 	"github.com/pkg/errors"
 )
 
 type (
 	Opt  func(*view, uint32) (*view, error)
 	view struct {
-		root pkg.Node
+		root         pkg.Node
 		selectClause []string
 		keymap       map[uint32]interface{}
 	}
@@ -70,7 +70,7 @@ func NewView(opts ...Opt) error {
 	if len(i.selectClause) == 0 {
 		return errors.New("view/builder: can not create a view without one or more selected nodes")
 	}
-	vNext := i.root.(pkg.NodeModifier).Version()
+	vNext := i.root.(pkg.NodeWriter).Version()
 	for _, name := range i.selectClause {
 		col := i.root.Find(name)
 		if pkg.IsNil(col) {
@@ -78,7 +78,7 @@ func NewView(opts ...Opt) error {
 		}
 		id, colIdx, _ := col.Id()
 		(*vNext)[id] = false // toggle visible
-		ver := col.(pkg.NodeModifier).Version()
+		ver := col.(pkg.NodeWriter).Version()
 		for rowIdx, v := range i.keymap {
 			iid := uint64(colIdx)<<32 | uint64(rowIdx)
 			(*ver)[iid] = !v.(bool)
