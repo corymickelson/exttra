@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/corymickelson/exttra/pkg"
 )
@@ -23,6 +24,7 @@ type (
 		prev     pkg.Composer
 		min      uint64
 		max      uint64
+		mutex    sync.RWMutex
 	}
 
 	Opt func(*node) (*node, error)
@@ -53,7 +55,6 @@ func NewNode(id *uint64, opts ...Opt) (pkg.Composer, error) {
 	}
 	return i, nil
 }
-
 func Nullable(nullable *pkg.Nullable) Opt {
 	return func(n *node) (*node, error) {
 		n.nullable = nullable
@@ -77,7 +78,7 @@ func V(v interface{}) Opt {
 	}
 }
 
-// Add a name property to the node. This property can be used
+// Add the display name to the node. This property can be used
 // as a column header when the output is csv.
 func Name(name string) Opt {
 	return func(n *node) (*node, error) {
@@ -85,23 +86,18 @@ func Name(name string) Opt {
 		return n, nil
 	}
 }
-
 func (i *node) Parent() pkg.Composer {
 	return i.parent
 }
-
 func (i *node) Value() interface{} {
 	return i.v
 }
-
 func (i *node) Children() map[uint64]pkg.Composer {
 	return i.children
 }
-
 func (i *node) Name() string {
 	return i.name
 }
-
 func (i *node) Add(n pkg.Composer, b bool) error {
 	i.nm[i.version][n.(*node).id] = b
 	i.children[n.(*node).id] = n
@@ -117,38 +113,58 @@ func (i *node) Min() uint64 {
 func (i *node) Max() uint64 {
 	return i.max
 }
-
-func (i *node) Nulls() map[uint64]bool {
+func (i *node) Null() map[uint64]bool {
 	return i.nm[i.version]
 }
-
-func (i *node) Reset() {
+func (i *node) reset() {
 	i.version = 0
 	for _, v := range i.children {
-		v.(pkg.Editor).Reset()
+		v.(*node).reset()
 	}
 }
-
-func (i *node) Version() *map[uint64]bool {
+func (i *node) Reset() {
+	n := root(i)
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+	n.reset()
+}
+func root(i *node) *node {
+	for {
+		if i.parent == nil {
+			return i
+		} else {
+			i = i.parent.(*node)
+		}
+	}
+}
+func (i *node) fork() {
 	v := make(map[uint64]bool)
 	for id := range i.nm[0] {
+		// default nilmap to true, ie all nodes are nil
 		v[id] = true
 	}
+	//v = i.nm[0]
 	i.nm = append(i.nm, v)
 	i.version = uint(len(i.nm)) - 1
-	return &i.nm[i.version]
+	for _, v := range i.children {
+		v.(*node).fork()
+	}
 }
-
+func (i *node) Fork() *map[uint64]bool {
+	n := root(i)
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+	n.fork()
+	return &n.nm[n.version]
+}
 func (i *node) Id() (uint64, uint32, uint32) {
 	col := uint32(i.id >> 32)
 	row := uint32(i.id & 0xFFFFFFFF)
 	return i.id, col, row
 }
-
 func (i *node) T() *pkg.FieldType {
 	return i.t
 }
-
 func (i *node) Find(ident interface{}) pkg.Composer {
 	var (
 		name  *string
@@ -181,7 +197,6 @@ func (i *node) Find(ident interface{}) pkg.Composer {
 	}
 	return nil
 }
-
 func (i *node) FindById(id uint64) pkg.Composer {
 	if c, ok := i.children[id]; ok {
 		return c
@@ -189,7 +204,6 @@ func (i *node) FindById(id uint64) pkg.Composer {
 		return nil
 	}
 }
-
 func (i *node) Next(set ...pkg.Composer) pkg.Composer {
 	if len(set) > 0 {
 		if pkg.IsNil(i.next) {
@@ -206,11 +220,9 @@ func (i *node) Prev(set ...pkg.Composer) pkg.Composer {
 	}
 	return i.prev
 }
-
-func (i *node) Toggle(id uint64) {
-	i.nm[i.version][id] = true
+func (i *node) Toggle(id uint64, b bool) {
+	i.nm[i.version][id] = b
 }
-
 func (i *node) Excluded(id uint64) (bool, error) {
 	if ex, ok := i.nm[i.version][id]; !ok {
 		return false, errors.New(fmt.Sprintf("data/tree: id %d does not exist in node", id))
@@ -218,7 +230,6 @@ func (i *node) Excluded(id uint64) (bool, error) {
 		return ex, nil
 	}
 }
-
 func (i *node) Excludes() []bool {
 	var (
 		root            = i
@@ -232,7 +243,10 @@ func (i *node) Excludes() []bool {
 			root = root.parent.(*node)
 		}
 	}
-	for _, col := range root.children {
+	for id, col := range root.children {
+		if root.Null()[id] {
+			continue
+		}
 		if excludes == nil {
 			excludes = make([]bool, col.(*node).max+1)
 		}
@@ -248,7 +262,12 @@ func (i *node) Excludes() []bool {
 	}
 	return excludes
 }
-
 func (i *node) Nullable() *pkg.Nullable {
 	return i.nullable
+}
+func (i *node) LockWhile(fn func()) {
+	n := root(i)
+	n.mutex.RLock()
+	defer n.mutex.RUnlock()
+	fn()
 }

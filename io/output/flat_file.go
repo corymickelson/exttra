@@ -3,28 +3,11 @@ package output
 import (
 	"bytes"
 	"encoding/csv"
+	"github.com/corymickelson/exttra/types"
 	"log"
 	"os"
 
 	"github.com/corymickelson/exttra/pkg"
-	"github.com/corymickelson/exttra/types"
-)
-
-type (
-	CsvOutput struct {
-		src        pkg.Composer
-		dest       interface{}
-		addOns     map[string]func(args interface{}) *string
-		addOnArgs  map[string]interface{}
-		alias      map[uint64]string
-		formatters map[uint64]CustomFormatter
-	}
-
-	Opt func(*CsvOutput) (*CsvOutput, error)
-
-	AddOnGenerator func(arg interface{}) *string
-
-	CustomFormatter func(in *string)
 )
 
 // Create an output for a root node [pkg.Composer].
@@ -32,10 +15,10 @@ type (
 // Optional properties:
 // 		AddOn: append an additional column where the value is created from the function response
 // 		Alias: add a display name for the column specified in the Alias parameter
-// Returns a CsvOutput object. Nothing has been written at this point.
+// Returns a flatFile object. Nothing has been written at this point.
 // To write call [Flush]
-func CsvOut(data pkg.Composer, dest interface{}, opts ...Opt) *CsvOutput {
-	i := new(CsvOutput)
+func Csv(data pkg.Composer, dest interface{}, opts ...Opt) Out {
+	i := new(flatFile)
 	i.src = data
 	i.dest = make([]interface{}, 0, 10)
 	i.addOns = make(map[string]func(args interface{}) *string)
@@ -51,55 +34,15 @@ func CsvOut(data pkg.Composer, dest interface{}, opts ...Opt) *CsvOutput {
 		if er != nil {
 			log.Fatal(er)
 		}
-		i = ii
+		i = ii.(*flatFile)
 	}
 	return i
-}
-
-// Alias a column with a new name. This new name will be used in the output file.
-func Alias(col, name string) Opt {
-	return func(out *CsvOutput) (*CsvOutput, error) {
-		target := out.src.Find(col)
-		if pkg.IsNil(target) {
-			// This is not considered a fatal error
-			log.Printf("output.Alias Column %s not found", col)
-			return out, nil
-		}
-		id, _, _ := target.Id()
-		out.alias[id] = name
-		return out, nil
-	}
-}
-
-// Add a new column to the output. The name will be the header (csv) of the column
-// and the value is the result of the AddOnGenerator
-func AddOn(name string, generator AddOnGenerator, args interface{}) Opt {
-	return func(output *CsvOutput) (*CsvOutput, error) {
-		output.addOns[name] = generator
-		output.addOnArgs[name] = args
-		return output, nil
-	}
-}
-
-// Add a custom formatter for a column.
-// This formatter is ran AFTER the value is converted to a string.
-func Format(col string, formatter CustomFormatter) Opt {
-	return func(out *CsvOutput) (*CsvOutput, error) {
-		target := out.src.Find(col)
-		if pkg.IsNil(target) {
-			log.Printf("output.Alias Column %s not found", col)
-			return out, nil
-		}
-		id, _, _ := target.Id()
-		out.formatters[id] = formatter
-		return out, nil
-	}
 }
 
 // Flush
 // flushes node to all destinations
 // destination files, buffers, and error (if any) are returned
-func (i *CsvOutput) Flush() error {
+func (i *flatFile) Flush() error {
 	var (
 		writer *csv.Writer
 	)
@@ -120,8 +63,8 @@ func (i *CsvOutput) Flush() error {
 
 	root := i.src
 	l := 0
-	for ii := range root.Nulls() {
-		if !root.Nulls()[ii] {
+	for ii := range root.Null() {
+		if !root.Null()[ii] {
 			l++
 		}
 	}
@@ -130,7 +73,7 @@ func (i *CsvOutput) Flush() error {
 	sent := 0
 	complete := 0
 	for id, v := range root.Children() {
-		if pkg.IsNil(v) || root.Nulls()[id] {
+		if pkg.IsNil(v) || root.Null()[id] {
 			continue
 		}
 		go i.buildColumn(column, v, sent)
@@ -144,7 +87,7 @@ func (i *CsvOutput) Flush() error {
 			colRow := r.First.([]string)
 			columns[idx] = colRow
 			if sent == complete {
-				rows := buildRows(columns, i.addOns, i.addOnArgs)
+				rows := i.buildRows(columns)
 				err := writer.WriteAll(rows)
 				if err != nil {
 					pkg.FatalDefect(&pkg.Defect{
@@ -157,9 +100,7 @@ func (i *CsvOutput) Flush() error {
 		}
 	}
 }
-func buildRows(cols [][]string,
-	addOns map[string]func(args interface{}) *string,
-	addOnArgs map[string]interface{}) [][]string {
+func (i *flatFile) buildRows(cols [][]string) [][]string {
 	var length *int = nil
 	for _, c := range cols {
 		if c == nil {
@@ -177,34 +118,34 @@ func buildRows(cols [][]string,
 		log.Fatal("output/csv: can not build rows with empty columns")
 	}
 	rows := make([][]string, 0)
-	for i := 0; i < *length; i++ {
-		row := make([]string, len(cols)+len(addOns))
+	for ii := 0; ii < *length; ii++ {
+		row := make([]string, len(cols)+len(i.addOns))
 		emptyCols := 0
-		for ii := 0; ii < len(cols); ii++ {
-			if cols[ii][i] == "" {
+		for iii := 0; iii < len(cols); iii++ {
+			if cols[iii][ii] == "" {
 				emptyCols++
 			}
-			row[ii] = cols[ii][i]
+			row[iii] = cols[iii][ii]
 		}
 		if emptyCols == len(cols) {
 			continue
 		}
 		addOnCount := 0
-		for n, f := range addOns {
-			if i == 0 {
+		for n, f := range i.addOns {
+			if ii == 0 {
 				row[len(cols)+addOnCount] = n
 			} else {
-				arg := addOnArgs[n]
+				arg := i.addOnArgs[n]
 				row[len(cols)+addOnCount] = *f(arg)
 			}
 			addOnCount++
 		}
 		rows = append(rows, row)
-		// rows[i] = row
+		// rows[ii] = row
 	}
 	return rows
 }
-func (i *CsvOutput) buildColumn(out chan pkg.Pair, n pkg.Composer, colIdx int) {
+func (i *flatFile) buildColumn(out chan pkg.Pair, n pkg.Composer, colIdx int) {
 	val := make([]string, n.Max()+2) // add one row for headers, and one as the Max value(row) must be inclusive, ex. if max = 10, then val[10] must not be out of range.
 	id, _, _ := n.Id()
 	if alias, ok := i.alias[id]; ok {
@@ -234,8 +175,8 @@ func (i *CsvOutput) buildColumn(out chan pkg.Pair, n pkg.Composer, colIdx int) {
 		} else {
 			vv := types.SimpleToString(v.Value())
 			if vv == nil || *vv == "" {
-				if !pkg.IsNil(n.(pkg.Editor).Nullable()) && n.(pkg.Editor).Nullable().ReplaceWith != nil {
-					val[row+1] = *n.(pkg.Editor).Nullable().ReplaceWith
+				if !pkg.IsNil(n.Nullable()) && n.Nullable().ReplaceWith != nil {
+					val[row+1] = *n.Nullable().ReplaceWith
 				} else {
 					val[row+1] = ""
 				}
@@ -251,3 +192,4 @@ func (i *CsvOutput) buildColumn(out chan pkg.Pair, n pkg.Composer, colIdx int) {
 	}
 	out <- pkg.Pair{First: val, Second: colIdx}
 }
+func (i flatFile) base() *output { return &i.output }

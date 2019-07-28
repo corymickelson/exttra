@@ -97,7 +97,7 @@ func applyToT(t interface{}, out chan map[uint32]interface{}, op func(l, r inter
 			rv interface{}
 		)
 		id, _, row := ll.Id()
-		if excludes[row] || l.Nulls()[id] {
+		if excludes[row] || l.Null()[id] {
 			results[row] = false
 			continue
 		}
@@ -106,7 +106,7 @@ func applyToT(t interface{}, out chan map[uint32]interface{}, op func(l, r inter
 			rv = r.Value()
 		} else {
 			rhsId, rcol, rrow := r.Id()
-			if excludes[rrow] || r.Nulls()[rhsId] {
+			if excludes[rrow] || r.Null()[rhsId] {
 				results[row] = false
 				continue
 			}
@@ -231,7 +231,7 @@ func (eq Eq) Apply() (map[uint32]interface{}, FieldType) {
 	)
 	if eq.Rhs.Value() == nil {
 		nm := make(map[uint32]interface{})
-		for i, v := range eq.Lhs.Nulls() {
+		for i, v := range eq.Lhs.Null() {
 			row := uint32(i & 0xFFFFFFFF)
 			nm[row] = v
 		}

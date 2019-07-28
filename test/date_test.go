@@ -3,9 +3,6 @@ package test
 import (
 	"bytes"
 	"encoding/csv"
-	"strings"
-	"testing"
-
 	"github.com/corymickelson/exttra/data"
 	"github.com/corymickelson/exttra/io/input"
 	"github.com/corymickelson/exttra/io/output"
@@ -13,6 +10,9 @@ import (
 	"github.com/corymickelson/exttra/pkg"
 	"github.com/corymickelson/exttra/types"
 	"github.com/corymickelson/exttra/view"
+	"strings"
+	"testing"
+	"time"
 )
 
 func generateFile(f [][]string) *bytes.Buffer {
@@ -107,7 +107,7 @@ func testDate(i interface{}) {
 			types.Column("D", test.fields[3], true),
 		)
 
-		in := input.CsvIn(bytes.NewReader(src.Bytes()), s)
+		in := input.Csv(bytes.NewReader(src.Bytes()), s)
 		p := parser.NewParser(&in)
 		if err = p.Validate(nil); err != nil {
 			t.Fatal(err)
@@ -116,7 +116,7 @@ func testDate(i interface{}) {
 		if root, err = p.Parse(); err != nil {
 			t.Fatal(err)
 		}
-		t.Log("Validate and Parse OK")
+		t.Log("Select A where A is NOT NULL and A > B")
 		err = view.NewView(view.Select("A"),
 			view.From(root),
 			view.Where(
@@ -128,8 +128,28 @@ func testDate(i interface{}) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		var shape struct {
+			DateTime time.Time
+		}
+		outParam := make([]interface{}, 0)
+		memOut := output.Mem(root, shape, &outParam,
+			output.Alias("A", "DateTime"))
+		if err = memOut.Flush(); err != nil {
+			t.Fatal(err)
+		} else {
+			if len(test.expect) > 1 {
+				if et, err := time.Parse(time.RFC3339, test.expect[1][0]); err != nil {
+					t.Fatal(err)
+				} else {
+					if et != outParam[0].(struct{ DateTime time.Time }).DateTime {
+						t.Logf("expected %v but got %v", et, outParam[0].(struct{ DateTime time.Time }).DateTime)
+						t.Fail()
+					}
+				}
+			}
+		}
 		mem := new(bytes.Buffer)
-		out := output.CsvOut(root, mem)
+		out := output.Csv(root, mem)
 		if err = out.Flush(); err != nil {
 			t.Fatal(err)
 		}
@@ -138,7 +158,7 @@ func testDate(i interface{}) {
 		fail(err)
 		for i, v := range actual {
 			for ii, vv := range v {
-				if actual[i][ii] != vv {
+				if test.expect[i][ii] != vv {
 					t.Fail()
 				}
 			}

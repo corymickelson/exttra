@@ -8,38 +8,28 @@ import (
 	"github.com/corymickelson/exttra/types"
 )
 
-type Input interface {
-	GetSchema() types.Signature
-	GetReader() interface{}
-}
-type CsvInput struct {
-	source     io.Reader
-	definition *types.Schema
-	reader     *csv.Reader
-}
-
 // Get the schema of this input
-func (i *CsvInput) GetSchema() types.Signature {
+func (i *flatFile) GetSchema() types.Signature {
 	return i.definition
 }
 
 // Get a reader. Reader will provide a read and/or readAll method to consume the file
-func (i *CsvInput) GetReader() interface{} {
+func (i *flatFile) GetReader() interface{} {
 	return i.reader
 }
 
 // Create a new input object.
-func CsvIn(source io.Reader, def types.Signature) Input {
+func Csv(source io.Reader, def types.Signature) Input {
 	if def == nil {
-		log.Fatal("input.CsvIn schema is required")
+		log.Fatal("input.Csv schema is required")
 	}
 	original, ok := def.(*types.Schema)
 	if !ok {
 		// todo: Signature is an empty interface, used only to mask the full schema object, this cast can
 		// break, how to handle casting error
-		log.Fatal("input.CsvIn schema bad cast")
+		log.Fatal("input.Csv schema bad cast")
 	}
-	i := new(CsvInput)
+	i := new(flatFile)
 	i.source = source
 	i.definition = original
 	i.reader = csv.NewReader(i.source)

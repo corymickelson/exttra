@@ -65,12 +65,12 @@ func NewView(opts ...Opt) error {
 		}
 	}
 	if pkg.IsNil(i.root) {
-		return errors.New("view/builder: view [From] must be defined with the [From] view functional option")
+		return errors.New("view/builder: view [From] must be defined with the [From] view option")
 	}
 	if len(i.selectClause) == 0 {
 		return errors.New("view/builder: can not create a view without one or more selected nodes")
 	}
-	vNext := i.root.(pkg.Editor).Version()
+	vNext := i.root.(pkg.Editor).Fork()
 	for _, name := range i.selectClause {
 		col := i.root.Find(name)
 		if pkg.IsNil(col) {
@@ -78,10 +78,9 @@ func NewView(opts ...Opt) error {
 		}
 		id, colIdx, _ := col.Id()
 		(*vNext)[id] = false // toggle visible
-		ver := col.(pkg.Editor).Version()
 		for rowIdx, v := range i.keymap {
 			iid := uint64(colIdx)<<32 | uint64(rowIdx)
-			(*ver)[iid] = !v.(bool)
+			col.(pkg.Editor).Toggle(iid, !v.(bool))
 		}
 	}
 	return nil

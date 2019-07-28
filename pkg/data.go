@@ -6,6 +6,7 @@ type (
 		Variants    []string
 		ReplaceWith *string
 	}
+	// Composer is the primary building block of the exttra tree
 	Composer interface {
 		// Get the parent of this node. If parent is nil, this node is the root node.
 		Parent() Composer
@@ -36,27 +37,47 @@ type (
 		// Add a new node to this nodes child collection.
 		// Set [b] = true if this node should be hidden from in the output
 		Add(Composer, bool) error
+		// Get/Set the Next node in this row
 		Next(set ...Composer) Composer
+		// Get/Set the Prev node in this row
 		Prev(set ...Composer) Composer
+		// The min row index of children. This value is created based off the Id of a child when it's [Add]ed to the node
 		Min() uint64
+		// The max row index of children. This value is created based off the Id of a child when it's [Add]ed to the node
 		Max() uint64
-		Nulls() map[uint64]bool
-		// Set the version back to 0 for this node and all it's children
-		// Reset()
-	}
-	Editor interface {
-		Composer
-		// Create a new version.
-		// Increment version number, and create a new nodemap/nilmap
-		// a reference of this nilmap is returned to the caller so they may update as needed
-		Version() *map[uint64]bool
-		Toggle(uint64)
-		// Build an aggregated view of all excluded rows
-		// Array index is the row number; true should be excluded and false kept
-		Excludes() []bool
+		// Get the nilmap of a node, the nilmap is an aggregate of all children, nilmaps are used for setting the
+		// visibility of a child node. Visibility can be determined by the schema, parser, expression evaluation, or
+		// manually via explicit manipulating a node nilmap (not advised).
+		Null() map[uint64]bool
+		// Get the nullability of a node
+		Nullable() *Nullable // Reset()
+		// Is the child node at [id] excluded (not visible at output)
 		Excluded(id uint64) (bool, error)
+	}
+	// An Editor interface operates from the root node down. Any operation performed with an Editor entity will effect
+	// the entire tree. These effects are however complimentary to the value of the tree. Once a tree is constructed ( during parsing )
+	// the tree's value is set and can not be modified. Editor methods operate only on the visibility of the tree; allowing
+	// something to be seen by the output method based on an expression or direct manipulation of a nodes nilmap
+	Editor interface {
+		// Fork creates a new clean nilmap of the entire tree.
+		// The original tree is immutable, after it's created it can not be changed, however the view of the
+		// tree can. To create new views a new fork is needed. Fork(ing) the tree provides a clean mapping of what
+		// the output can and can not see.
+		Fork() *map[uint64]bool
+		// Toggle the visibility of a child node. A nodes children's visibility is implicitly set during parsing, and expression evaluation
+		// (views) but may also by set through the [Toggle] method.
+		// Setting an Id to true will hide a node from the [Out] instance; telling the [Out] instance that this child is nil.
+		// Setting it to false will allow the node to be seen by the [Out] instance; telling the [Out] instance this child has a value to be viewed.
+		// If this seem unintuitive or backwards, recall this method is manipulating a nodes NILmap; a mapping of all child
+		// nodes which are nil (non-viewable) to an [Out] instance
+		Toggle(uint64, bool)
+		// Build an aggregated view of all excluded rows
+		Excludes() []bool
+		// Reset the tree to the initial visibility construction. To see how visibility is created during construction
+		// see [Parser]
 		Reset()
-		Nullable() *Nullable
+		// LockWhile creates a read lock on the root node while the function is ran
+		LockWhile(func())
 	}
 	Defector interface {
 		Report() [][]string // in csv format
