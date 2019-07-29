@@ -205,21 +205,32 @@ func (p *parser) parseRow(row *[]string) error {
 			}
 		}
 	}
-	for i := range colRow {
-		if i == 0 {
-			colRow[i].Prev(nil)
-			colRow[i].Next(colRow[i+1])
-			continue
-		} else if i == len(colRow)-1 {
-			colRow[i].Next(nil)
-			colRow[i].Prev(colRow[i-1])
-		} else {
-			colRow[i].Next(colRow[i+1])
-			colRow[i].Prev(colRow[i-1])
-		}
+	return p.linkRow(&colRow)
+}
+func (p *parser) linkRow(row *[]pkg.Composer) error {
+	var (
+		i         = 0
+		err error = nil
+	)
+loop:
+	if i > len(*row) {
+		return err
 	}
-	return nil
-
+	if i == 0 {
+		(*row)[i].Prev(nil)
+		(*row)[i].Next((*row)[i+1])
+		i++
+		goto loop
+	} else if i == len(*row)-1 {
+		(*row)[i].Next(nil)
+		(*row)[i].Prev((*row)[i-1])
+		return err
+	} else {
+		(*row)[i].Next((*row)[i+1])
+		(*row)[i].Prev((*row)[i-1])
+		i++
+		goto loop
+	}
 }
 func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 	for _, pi := range p.primary {
@@ -287,6 +298,7 @@ func (p *parser) Validate(index *uint32) error {
 		i          uint64
 		field      string
 		hi         uint32 = 0
+		colRow            = make([]pkg.Composer, 0)
 	)
 
 	if index != nil {
@@ -369,7 +381,10 @@ func (p *parser) Validate(index *uint32) error {
 			log.Fatalf(err.Error())
 		} else if err = p.data.Add(n, false); err != nil {
 			log.Fatalf(err.Error())
+		} else {
+			colRow = append(colRow, n)
 		}
+
 	}
 	cc := 0
 	for _, l := range p.data.Children() {
@@ -383,7 +398,7 @@ func (p *parser) Validate(index *uint32) error {
 			Msg: "Missing required column(s)",
 		})
 	}
-	return nil
+	return p.linkRow(&colRow)
 }
 
 // If a primary key is defined on the input,

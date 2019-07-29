@@ -3,22 +3,23 @@ package output
 import (
 	"errors"
 	"fmt"
-	"github.com/corymickelson/exttra/pkg"
 	"log"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/corymickelson/exttra/pkg"
 )
 
 // "Write" an exttra tree to memory in a predefined shape
 //
-// 	var shape struct{
-//		A: string
-//		B: float64
-// 		C: time.Time
-//		D: struct{
-//			F: time.Time
-//			G: bool
+// 	type shape struct{
+//		A string
+//		B float64
+// 		C time.Time
+//		D struct{
+//			F time.Time
+//			G bool
 //		}
 //	}
 //	outParam := make([]interface{}, 0)
@@ -134,8 +135,6 @@ loop:
 		path = path[1:]
 		goto loop
 	} else if len(path) == 1 {
-		//t := time.Time{}
-		//f.Set(reflect.ValueOf(t))
 		if pi, ok := v.Type().FieldByName(path[0]); !ok {
 			return reflect.StructField{}, errors.New(fmt.Sprintf("output/mem: can not find field %s", name))
 		} else {
@@ -163,7 +162,6 @@ func (i *mem) fillShape(out chan interface{}, quit chan error, n pkg.Composer, e
 			field reflect.StructField
 			col   = n.Parent()
 		)
-		//id, _, _ := n.Id()
 		cId, _, _ := col.Id()
 		if i.src.Null()[cId] {
 			goto next
@@ -173,6 +171,12 @@ func (i *mem) fillShape(out chan interface{}, quit chan error, n pkg.Composer, e
 			field = alias
 		} else {
 			quit <- errors.New(fmt.Sprintf("output/mem: alias not found for column %d", cId))
+		}
+		if pkg.IsNil(n.Value()) {
+			goto next
+			// if cpy.FieldByIndex(field.Index).Type().Kind() == reflect.Ptr {
+			// 	cpy.FieldByIndex(field.Index).Set(nil)
+			// }
 		}
 		// make sure n.Value is the same type as the field
 		switch n.Value().(type) {

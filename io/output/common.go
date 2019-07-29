@@ -3,9 +3,10 @@ package output
 import (
 	"errors"
 	"fmt"
-	"github.com/corymickelson/exttra/pkg"
 	"log"
 	"reflect"
+
+	"github.com/corymickelson/exttra/pkg"
 )
 
 type (

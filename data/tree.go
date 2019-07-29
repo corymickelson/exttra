@@ -143,11 +143,13 @@ func (i *node) fork() {
 		// default nilmap to true, ie all nodes are nil
 		v[id] = true
 	}
-	//v = i.nm[0]
+	// v = i.nm[0]
 	i.nm = append(i.nm, v)
 	i.version = uint(len(i.nm)) - 1
-	for _, v := range i.children {
-		v.(*node).fork()
+	if len(i.children) > 0 {
+		for _, v := range i.children {
+			v.(*node).fork()
+		}
 	}
 }
 func (i *node) Fork() *map[uint64]bool {
