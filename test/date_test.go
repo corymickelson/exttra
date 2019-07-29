@@ -2,7 +2,10 @@ package test
 
 import (
 	"bytes"
-	"encoding/csv"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/corymickelson/exttra/data"
 	"github.com/corymickelson/exttra/io/input"
 	"github.com/corymickelson/exttra/io/output"
@@ -10,9 +13,6 @@ import (
 	"github.com/corymickelson/exttra/pkg"
 	"github.com/corymickelson/exttra/types"
 	"github.com/corymickelson/exttra/view"
-	"strings"
-	"testing"
-	"time"
 )
 
 func generateFile(f [][]string) *bytes.Buffer {
@@ -38,11 +38,6 @@ func testDate(i interface{}) {
 		return
 	}
 	var (
-		fail = func(it interface{}) {
-			if it != nil {
-				t.Fatal(it)
-			}
-		}
 		err          error        = nil
 		null         pkg.Composer = nil
 		explicitNull              = "NULL"
@@ -128,9 +123,10 @@ func testDate(i interface{}) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var shape struct {
+		type record struct {
 			DateTime time.Time
 		}
+		var shape record
 		outParam := make([]interface{}, 0)
 		memOut := output.Mem(root, shape, &outParam,
 			output.Alias("A", "DateTime"))
@@ -141,27 +137,13 @@ func testDate(i interface{}) {
 				if et, err := time.Parse(time.RFC3339, test.expect[1][0]); err != nil {
 					t.Fatal(err)
 				} else {
-					if et != outParam[0].(struct{ DateTime time.Time }).DateTime {
+					if et != outParam[0].(record).DateTime {
 						t.Logf("expected %v but got %v", et, outParam[0].(struct{ DateTime time.Time }).DateTime)
 						t.Fail()
 					}
 				}
 			}
 		}
-		mem := new(bytes.Buffer)
-		out := output.Csv(root, mem)
-		if err = out.Flush(); err != nil {
-			t.Fatal(err)
-		}
-		tr := csv.NewReader(bytes.NewReader(mem.Bytes()))
-		actual, err := tr.ReadAll()
-		fail(err)
-		for i, v := range actual {
-			for ii, vv := range v {
-				if test.expect[i][ii] != vv {
-					t.Fail()
-				}
-			}
-		}
+
 	}
 }
