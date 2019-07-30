@@ -131,7 +131,6 @@ func (p *parser) parseRow(row *[]string) error {
 						}
 						colRow = append(colRow, n)
 						if d.Msg != "" {
-							pkg.LogDefect(d)
 						}
 						continue
 					}
@@ -146,7 +145,6 @@ func (p *parser) parseRow(row *[]string) error {
 						n, err = data.NewNode(&id, data.V(item.(time.Time)))
 					default:
 						d.Msg = "parser/parse: time was expected"
-						pkg.LogDefect(d)
 						n = nilNode
 					}
 				case pkg.FLOAT:
@@ -155,7 +153,6 @@ func (p *parser) parseRow(row *[]string) error {
 						n, err = data.NewNode(&id, data.V(item.(float64)))
 					default:
 						d.Msg = "parser/parse: float was expected"
-						pkg.LogDefect(d)
 						n = nilNode
 					}
 				case pkg.CUSTOM:
@@ -166,7 +163,6 @@ func (p *parser) parseRow(row *[]string) error {
 						n, err = data.NewNode(&id, data.V(item.(string)))
 					default:
 						d.Msg = "parser/parse: string was expected"
-						pkg.LogDefect(d)
 						n = nilNode
 					}
 				case pkg.BOOL:
@@ -175,7 +171,6 @@ func (p *parser) parseRow(row *[]string) error {
 						n, err = data.NewNode(&id, data.V(item.(bool)))
 					default:
 						d.Msg = "parser/parse: bool was expected"
-						pkg.LogDefect(d)
 						n = nilNode
 					}
 				case pkg.INT:
@@ -184,25 +179,25 @@ func (p *parser) parseRow(row *[]string) error {
 						n, err = data.NewNode(&id, data.V(item.(int)))
 					default:
 						d.Msg = "parser/parse: bool was expected"
-						pkg.LogDefect(d)
 						n = nilNode
 					}
 				default:
 					d.Msg = "parser/parse: type not defined by pkg.FieldType"
-					pkg.LogDefect(d)
 					n = nilNode
 				}
 			}
 			if n == nil {
 				log.Fatal("parser/parser: nil node")
 			}
-			if err = col.Add(n, n.Value() == nil); err != nil {
-				d.Msg = err.Error()
-			}
-			colRow = append(colRow, n)
 			if d.Msg != "" {
 				pkg.LogDefect(d)
 			}
+			if err = col.Add(n, n.Value() == nil); err != nil {
+				d.Msg = err.Error()
+				pkg.FatalDefect(d)
+			}
+			colRow = append(colRow, n)
+
 		}
 	}
 	return p.linkRow(&colRow)

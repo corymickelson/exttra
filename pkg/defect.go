@@ -11,10 +11,7 @@ var (
 	instance *Defects
 )
 
-// Create a new Defector object
-// Defector is a single global object
-// [LogDefect] and [FatalDefect] operate
-// on this global object
+// Create or gets the global defects collection.
 func NewDC() Defector {
 	once.Do(func() {
 		instance = new(Defects)
