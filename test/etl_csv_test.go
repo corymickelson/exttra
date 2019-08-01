@@ -373,7 +373,6 @@ func recordedBeforeMailed(table Composer) (*bytes.Buffer, error) {
 		goto exit
 	}
 	for i := range mem {
-
 		var (
 			item record
 			ok   bool
