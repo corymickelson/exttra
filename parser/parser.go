@@ -253,7 +253,6 @@ func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 			p.keys[uint64(colIdx)][candidate]++
 			col.(pkg.Editor).Toggle(pkg.GenNodeId(colIdx, uint32(*rowIdx)), true)
 		} else {
-			// p.keys[uint64(colIdx)] = make(map[string]uint8)
 			p.keys[uint64(colIdx)][candidate] = 0
 		}
 	}
