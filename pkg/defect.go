@@ -26,6 +26,9 @@ func NewDC() Defector {
 	return instance
 }
 
+func (d *Defects) Count() int {
+	return len(d.coll)
+}
 // Disable the global defects collector
 func (d *Defects) Disable() {
 	instance.enabled = false
