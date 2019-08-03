@@ -3,6 +3,7 @@ package output
 import (
 	"bytes"
 	"encoding/csv"
+	"errors"
 	"github.com/loanpal-engineering/exttra/types"
 	"log"
 	"os"
@@ -15,11 +16,12 @@ import (
 // Optional properties:
 // 		AddOn: append an additional column where the value is created from the function response
 // 		Alias: add a display name for the column specified in the Alias parameter
-// Returns a flatFile object. Nothing has been written at this point.
+// Returns a FlatFile object. Nothing has been written at this point.
 // To write call [Flush]
 func Csv(data pkg.Composer, dest interface{}, opts ...Opt) Out {
-	i := new(flatFile)
+	i := new(FlatFile)
 	i.src = data
+	i.header = make([]string, 0)
 	i.dest = make([]interface{}, 0, 10)
 	i.addOns = make(map[string]func(args interface{}) *string)
 	i.addOnArgs = make(map[string]interface{})
@@ -34,15 +36,24 @@ func Csv(data pkg.Composer, dest interface{}, opts ...Opt) Out {
 		if er != nil {
 			log.Fatal(er)
 		}
-		i = ii.(*flatFile)
+		i = ii.(*FlatFile)
 	}
 	return i
+}
+
+// Helper method used for constructing aurora/redshift loan/copy statements requiring header row.
+// Returns a copy of the header row. Mutating this value will NOT persist back to disk/file
+func (i *FlatFile) Header() (error, []string) {
+	if i.header == nil {
+		return errors.New("io/output/csv: Flush must be called prior to Header"), nil
+	}
+	return nil, i.header
 }
 
 // Flush
 // flushes node to all destinations
 // destination files, buffers, and error (if any) are returned
-func (i *flatFile) Flush() error {
+func (i *FlatFile) Flush() error {
 	var (
 		writer *csv.Writer
 	)
@@ -88,6 +99,7 @@ func (i *flatFile) Flush() error {
 			columns[idx] = colRow
 			if sent == complete {
 				rows := i.buildRows(columns)
+				i.header = rows[0]
 				err := writer.WriteAll(rows)
 				if err != nil {
 					pkg.FatalDefect(&pkg.Defect{
@@ -100,7 +112,7 @@ func (i *flatFile) Flush() error {
 		}
 	}
 }
-func (i *flatFile) buildRows(cols [][]string) [][]string {
+func (i *FlatFile) buildRows(cols [][]string) [][]string {
 	var length *int = nil
 	for _, c := range cols {
 		if c == nil {
@@ -145,7 +157,7 @@ func (i *flatFile) buildRows(cols [][]string) [][]string {
 	}
 	return rows
 }
-func (i *flatFile) buildColumn(out chan pkg.Pair, n pkg.Composer, colIdx int) {
+func (i *FlatFile) buildColumn(out chan pkg.Pair, n pkg.Composer, colIdx int) {
 	val := make([]string, n.Max()+2) // add one row for headers, and one as the Max value(row) must be inclusive, ex. if max = 10, then val[10] must not be out of range.
 	id, _, _ := n.Id()
 	if alias, ok := i.alias[id]; ok {
@@ -192,4 +204,4 @@ func (i *flatFile) buildColumn(out chan pkg.Pair, n pkg.Composer, colIdx int) {
 	}
 	out <- pkg.Pair{First: val, Second: colIdx}
 }
-func (i flatFile) base() *output { return &i.output }
+func (i FlatFile) base() *output { return &i.output }
