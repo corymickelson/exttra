@@ -3,7 +3,7 @@ package view
 import (
 	"fmt"
 
-	"github.com/corymickelson/exttra/pkg"
+	"github.com/loanpal-engineering/exttra/pkg"
 	"github.com/pkg/errors"
 )
 

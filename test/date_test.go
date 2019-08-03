@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/corymickelson/exttra/data"
-	"github.com/corymickelson/exttra/io/input"
-	"github.com/corymickelson/exttra/io/output"
-	"github.com/corymickelson/exttra/parser"
-	"github.com/corymickelson/exttra/pkg"
-	"github.com/corymickelson/exttra/types"
-	"github.com/corymickelson/exttra/view"
+	"github.com/loanpal-engineering/exttra/data"
+	"github.com/loanpal-engineering/exttra/io/input"
+	"github.com/loanpal-engineering/exttra/io/output"
+	"github.com/loanpal-engineering/exttra/parser"
+	"github.com/loanpal-engineering/exttra/pkg"
+	"github.com/loanpal-engineering/exttra/types"
+	"github.com/loanpal-engineering/exttra/view"
 )
 
 func generateFile(f [][]string) *bytes.Buffer {

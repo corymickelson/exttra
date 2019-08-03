@@ -6,7 +6,7 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/corymickelson/exttra/pkg"
+	"github.com/loanpal-engineering/exttra/pkg"
 )
 
 type (

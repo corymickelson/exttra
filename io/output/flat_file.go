@@ -3,11 +3,11 @@ package output
 import (
 	"bytes"
 	"encoding/csv"
-	"github.com/corymickelson/exttra/types"
+	"github.com/loanpal-engineering/exttra/types"
 	"log"
 	"os"
 
-	"github.com/corymickelson/exttra/pkg"
+	"github.com/loanpal-engineering/exttra/pkg"
 )
 
 // Create an output for a root node [pkg.Composer].
