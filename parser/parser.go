@@ -414,9 +414,9 @@ func (p *parser) fillInDefects() {
 			}
 			d.(*pkg.Defects).Headers = append(d.(*pkg.Defects).Headers, col.Name())
 		}
-		for _, v := range defs {
+		for i, v := range *defs {
 			if v.Keys == nil {
-				v.Keys = make(map[string]string)
+				(*defs)[i].Keys = make(map[string]string)
 			}
 			r := v.Row
 			if r == "" {
@@ -437,7 +437,7 @@ func (p *parser) fillInDefects() {
 				if row == nil {
 					continue
 				}
-				v.Keys[col.Name()] = row.Value().(string)
+				(*defs)[i].Keys[col.Name()] = row.Value().(string)
 			}
 		}
 	}

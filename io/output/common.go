@@ -24,17 +24,18 @@ type (
 		addOnArgs  map[string]interface{}
 		formatters map[uint64]CustomFormatter
 	}
-	mem struct {
+	Memory struct {
 		output
 		out   *[]interface{}
 		shape interface{}
 		alias map[uint64]reflect.StructField
 	}
 
-	flatFile struct {
+	FlatFile struct {
 		output
-		dest  interface{}
-		alias map[uint64]string
+		dest   interface{}
+		alias  map[uint64]string
+		header []string
 	}
 	Opt func(Out) (Out, error)
 
@@ -57,15 +58,15 @@ func Alias(col, name string) Opt {
 		}
 		id, _, _ := target.Id()
 		switch out.(type) {
-		case *mem:
-			if prop, err := out.(*mem).findField(name); err != nil {
+		case *Memory:
+			if prop, err := out.(*Memory).findField(name); err != nil {
 				return nil, err
 			} else {
-				out.(*mem).alias[id] = prop
+				out.(*Memory).alias[id] = prop
 			}
 			return out, nil
-		case *flatFile:
-			out.(*flatFile).alias[id] = name
+		case *FlatFile:
+			out.(*FlatFile).alias[id] = name
 			return out, nil
 		default:
 			return nil, err
