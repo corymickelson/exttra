@@ -2,7 +2,7 @@ package input
 
 import (
 	"encoding/csv"
-	"github.com/corymickelson/exttra/types"
+	"github.com/loanpal-engineering/exttra/types"
 	"io"
 )
 

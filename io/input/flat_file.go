@@ -5,7 +5,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/corymickelson/exttra/types"
+	"github.com/loanpal-engineering/exttra/types"
 )
 
 // Get the schema of this input

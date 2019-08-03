@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corymickelson/exttra/pkg"
+	"github.com/loanpal-engineering/exttra/pkg"
 )
 
 // "Write" an exttra tree to memory in a predefined shape

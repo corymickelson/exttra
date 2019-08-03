@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corymickelson/exttra/pkg"
+	"github.com/loanpal-engineering/exttra/pkg"
 	"github.com/pkg/errors"
 
 	"github.com/araddon/dateparse"

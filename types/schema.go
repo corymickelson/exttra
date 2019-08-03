@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/corymickelson/exttra/pkg"
+	"github.com/loanpal-engineering/exttra/pkg"
 )
 
 type (

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corymickelson/exttra/data"
-	"github.com/corymickelson/exttra/io/input"
-	"github.com/corymickelson/exttra/pkg"
-	"github.com/corymickelson/exttra/types"
+	"github.com/loanpal-engineering/exttra/data"
+	"github.com/loanpal-engineering/exttra/io/input"
+	"github.com/loanpal-engineering/exttra/pkg"
+	"github.com/loanpal-engineering/exttra/types"
 	"github.com/pkg/errors"
 )
 

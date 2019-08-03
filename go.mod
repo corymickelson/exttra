@@ -1,4 +1,4 @@
-module github.com/corymickelson/exttra
+module github.com/loanpal-engineering/exttra
 
 go 1.12
 
