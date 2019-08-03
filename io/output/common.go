@@ -6,7 +6,7 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/corymickelson/exttra/pkg"
+	"github.com/loanpal-engineering/exttra/pkg"
 )
 
 type (
@@ -24,18 +24,17 @@ type (
 		addOnArgs  map[string]interface{}
 		formatters map[uint64]CustomFormatter
 	}
-	Memory struct {
+	mem struct {
 		output
 		out   *[]interface{}
 		shape interface{}
 		alias map[uint64]reflect.StructField
 	}
 
-	FlatFile struct {
+	flatFile struct {
 		output
-		dest   interface{}
-		alias  map[uint64]string
-		header []string
+		dest  interface{}
+		alias map[uint64]string
 	}
 	Opt func(Out) (Out, error)
 
@@ -58,15 +57,15 @@ func Alias(col, name string) Opt {
 		}
 		id, _, _ := target.Id()
 		switch out.(type) {
-		case *Memory:
-			if prop, err := out.(*Memory).findField(name); err != nil {
+		case *mem:
+			if prop, err := out.(*mem).findField(name); err != nil {
 				return nil, err
 			} else {
-				out.(*Memory).alias[id] = prop
+				out.(*mem).alias[id] = prop
 			}
 			return out, nil
-		case *FlatFile:
-			out.(*FlatFile).alias[id] = name
+		case *flatFile:
+			out.(*flatFile).alias[id] = name
 			return out, nil
 		default:
 			return nil, err

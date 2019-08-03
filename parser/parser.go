@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/corymickelson/exttra/data"
-	"github.com/corymickelson/exttra/io/input"
-	"github.com/corymickelson/exttra/pkg"
-	"github.com/corymickelson/exttra/types"
+	"github.com/loanpal-engineering/exttra/data"
+	"github.com/loanpal-engineering/exttra/io/input"
+	"github.com/loanpal-engineering/exttra/pkg"
+	"github.com/loanpal-engineering/exttra/types"
 	"github.com/pkg/errors"
 )
 
@@ -238,10 +238,6 @@ func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 			return errors.New("parser/parser: primary key column not found")
 		}
 		_, colIdx, _ = col.Id()
-		if _, exists := p.keys[uint64(colIdx)]; !exists {
-			colKeyMap := make(map[string]uint8)
-			p.keys[uint64(colIdx)] = colKeyMap
-		}
 		candidate := strings.TrimSpace((*row)[colIdx])
 		_, exists := p.keys[uint64(colIdx)][candidate]
 		if exists {
@@ -253,6 +249,7 @@ func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 			p.keys[uint64(colIdx)][candidate]++
 			col.(pkg.Editor).Toggle(pkg.GenNodeId(colIdx, uint32(*rowIdx)), true)
 		} else {
+			p.keys[uint64(colIdx)] = make(map[string]uint8)
 			p.keys[uint64(colIdx)][candidate] = 0
 		}
 	}
@@ -414,9 +411,9 @@ func (p *parser) fillInDefects() {
 			}
 			d.(*pkg.Defects).Headers = append(d.(*pkg.Defects).Headers, col.Name())
 		}
-		for i, v := range *defs {
+		for _, v := range defs {
 			if v.Keys == nil {
-				(*defs)[i].Keys = make(map[string]string)
+				v.Keys = make(map[string]string)
 			}
 			r := v.Row
 			if r == "" {
@@ -437,7 +434,7 @@ func (p *parser) fillInDefects() {
 				if row == nil {
 					continue
 				}
-				(*defs)[i].Keys[col.Name()] = row.Value().(string)
+				v.Keys[col.Name()] = row.Value().(string)
 			}
 		}
 	}

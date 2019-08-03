@@ -15,7 +15,7 @@ var (
 func NewDC() Defector {
 	once.Do(func() {
 		instance = new(Defects)
-		instance.coll = make([]*Defect, 0)
+		instance.coll = make([]*Defect, 0, 100)
 		instance.enabled = true
 		instance.Headers = []string{
 			"Column",
@@ -26,20 +26,12 @@ func NewDC() Defector {
 	return instance
 }
 
-func (d *Defects) Count() int {
-	return len(d.coll)
-}
-
 // Disable the global defects collector
 func (d *Defects) Disable() {
 	instance.enabled = false
 }
-
-// Get the current collection of defects.
-// This is a reference to the collection.
-// Any changes made to the results will be persisted to the Defects instance
-func (d *Defects) Coll() *[]*Defect {
-	return &d.coll
+func (d *Defects) Coll() []*Defect {
+	return d.coll
 }
 
 // Interrupt a FatalDefect to run the provided function
@@ -53,7 +45,20 @@ func (d *Defects) ExitInterrupt(f func([]*Defect)) {
 // If the schema defined column(s) as unique, these columns will
 // be appended to the resulting file.
 func (d *Defects) Report() [][]string {
-	rows := make([][]string, 0, len(d.coll)+1)
+	rows := make([][]string, 0, len(d.coll))
+	for k := range d.coll[0].Keys {
+		found := false
+		for _, v := range d.Headers {
+			if k == v {
+				found = true
+				break
+			}
+		}
+		if !found {
+			d.Headers = append(d.Headers, k)
+		}
+	}
+	d.Headers = d.Headers[:len(d.Headers)]
 	rows = append(rows, d.Headers)
 	for _, v := range d.coll {
 		row := make([]string, len(d.Headers))
@@ -61,9 +66,9 @@ func (d *Defects) Report() [][]string {
 		row[1] = v.Row
 		row[2] = v.Msg
 		for k, vv := range v.Keys {
-			for i, j := range rows[0] {
+			for ii, j := range rows[0] {
 				if j == k {
-					row[i] = vv
+					row[ii] = vv
 				}
 			}
 		}
