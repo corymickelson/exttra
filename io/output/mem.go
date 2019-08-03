@@ -29,7 +29,7 @@ import (
 //		log.Printf("%v", v.(shape))
 //	}
 func Mem(data pkg.Composer, shape interface{}, outParam *[]interface{}, opts ...Opt) Out {
-	i := new(mem)
+	i := new(Memory)
 	i.src = data
 	i.shape = shape
 	if err := i.assertShape(); err != nil {
@@ -42,12 +42,12 @@ func Mem(data pkg.Composer, shape interface{}, outParam *[]interface{}, opts ...
 		if er != nil {
 			log.Fatal(er)
 		}
-		i = ii.(*mem)
+		i = ii.(*Memory)
 	}
 	return i
 }
-func (i *mem) base() *output { return &i.output }
-func (i *mem) leftMostNode() (pkg.Composer, error) {
+func (i *Memory) base() *output { return &i.output }
+func (i *Memory) leftMostNode() (pkg.Composer, error) {
 	// Left most node in the tree
 	var lhs pkg.Composer
 	// Doesnt matter which child, just pick one
@@ -82,11 +82,11 @@ func (i *mem) leftMostNode() (pkg.Composer, error) {
 		}
 	}
 	if lhs == nil {
-		return nil, errors.New("output/mem: Failed to find left outer most node")
+		return nil, errors.New("output/Memory: Failed to find left outer most node")
 	}
 	return lhs, nil
 }
-func (i *mem) Flush() error {
+func (i *Memory) Flush() error {
 	var (
 		lhs     pkg.Composer
 		err     error = nil
@@ -115,7 +115,7 @@ func (i *mem) Flush() error {
 				return nil
 			}
 		case err = <-quitter:
-			log.Printf("output/mem: fata error, %d rows completed before failure", sent)
+			log.Printf("output/Memory: fata error, %d rows completed before failure", sent)
 			return err
 		}
 	}
@@ -123,7 +123,7 @@ func (i *mem) Flush() error {
 
 // Find a field when the name is not a top level property of an object
 // Use find field only for nested properties, otherwise use `elem.Type().FieldByName(name)`
-func (i *mem) findField(name string) (reflect.StructField, error) {
+func (i *Memory) findField(name string) (reflect.StructField, error) {
 	var (
 		path = strings.Split(name, ".")
 		v    = reflect.ValueOf(i.shape)
@@ -136,23 +136,23 @@ loop:
 		goto loop
 	} else if len(path) == 1 {
 		if pi, ok := v.Type().FieldByName(path[0]); !ok {
-			return reflect.StructField{}, errors.New(fmt.Sprintf("output/mem: can not find field %s", name))
+			return reflect.StructField{}, errors.New(fmt.Sprintf("output/Memory: can not find field %s", name))
 		} else {
 			return pi, nil
 		}
 	} else {
-		return reflect.StructField{}, errors.New(fmt.Sprintf("output/mem: failed to set shape property %s", name))
+		return reflect.StructField{}, errors.New(fmt.Sprintf("output/Memory: failed to set shape property %s", name))
 	}
 }
-func (i *mem) assertShape() error {
+func (i *Memory) assertShape() error {
 	if reflect.ValueOf(i.shape).Kind() != reflect.Struct {
-		return errors.New("output/mem: shape must be a struct")
+		return errors.New("output/Memory: shape must be a struct")
 	}
 	return nil
 }
 
 // fill the shape representing a single row, n MUST be the left most node that is part of the shape.
-func (i *mem) fillShape(out chan interface{}, quit chan error, n pkg.Composer, excludes []bool) {
+func (i *Memory) fillShape(out chan interface{}, quit chan error, n pkg.Composer, excludes []bool) {
 	var (
 		orig = reflect.ValueOf(i.shape)
 		cpy  = reflect.New(orig.Type()).Elem()
@@ -170,7 +170,7 @@ func (i *mem) fillShape(out chan interface{}, quit chan error, n pkg.Composer, e
 		if alias, ok := i.alias[cId]; ok {
 			field = alias
 		} else {
-			quit <- errors.New(fmt.Sprintf("output/mem: alias not found for column %d", cId))
+			quit <- errors.New(fmt.Sprintf("output/Memory: alias not found for column %d", cId))
 		}
 		if pkg.IsNil(n.Value()) {
 			goto next
@@ -203,7 +203,7 @@ func (i *mem) fillShape(out chan interface{}, quit chan error, n pkg.Composer, e
 				cpy.FieldByIndex(field.Index).SetInt(n.Value().(int64))
 			}
 		default:
-			quit <- errors.New("output/mem: unknown type, supported types are: string, float64, int64, bool, time.Time")
+			quit <- errors.New("output/Memory: unknown type, supported types are: string, float64, int64, bool, time.Time")
 		}
 	next:
 		if n.Next() != nil {
