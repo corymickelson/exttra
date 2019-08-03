@@ -15,7 +15,7 @@ var (
 func NewDC() Defector {
 	once.Do(func() {
 		instance = new(Defects)
-		instance.coll = make([]*Defect, 0, 100)
+		instance.coll = make([]*Defect, 0)
 		instance.enabled = true
 		instance.Headers = []string{
 			"Column",
@@ -29,12 +29,17 @@ func NewDC() Defector {
 func (d *Defects) Count() int {
 	return len(d.coll)
 }
+
 // Disable the global defects collector
 func (d *Defects) Disable() {
 	instance.enabled = false
 }
-func (d *Defects) Coll() []*Defect {
-	return d.coll
+
+// Get the current collection of defects.
+// This is a reference to the collection.
+// Any changes made to the results will be persisted to the Defects instance
+func (d *Defects) Coll() *[]*Defect {
+	return &d.coll
 }
 
 // Interrupt a FatalDefect to run the provided function
