@@ -15,7 +15,7 @@ var (
 func NewDC() Defector {
 	once.Do(func() {
 		instance = new(Defects)
-		instance.coll = make([]*Defect, 0, 100)
+		instance.coll = make([]*Defect, 0)
 		instance.enabled = true
 		instance.Headers = []string{
 			"Column",
@@ -30,10 +30,15 @@ func NewDC() Defector {
 func (d *Defects) Disable() {
 	instance.enabled = false
 }
-func (d *Defects) Coll() []*Defect {
-	return d.coll
+// Get the current collection of defects.
+// This is a reference to the collection.
+// Any changes made to the results will be persisted to the Defect instance
+func (d *Defects) Coll() *[]*Defect {
+	return &d.coll
 }
-
+func (d *Defects) Count() int {
+	return len(d.coll)
+}
 // Interrupt a FatalDefect to run the provided function
 // with the global collection of defects before the
 // process exits
@@ -106,12 +111,12 @@ func LogDefect(d *Defect) {
 // To capture collected defects before the process exits
 // set the FatalExitInterrupt
 func FatalDefect(d *Defect) {
-	defs := NewDC()
-	if defs.(*Defects).enabled {
+	defs := NewDC().(*Defects)
+	if defs.enabled {
 		checkRecord(d)
-		defs.(*Defects).coll = append(defs.(*Defects).coll, d)
-		if defs.(*Defects).exitInterrupt != nil {
-			defs.(*Defects).exitInterrupt(defs.(*Defects).coll)
+		defs.coll = append(defs.coll, d)
+		if defs.exitInterrupt != nil {
+			defs.exitInterrupt(defs.coll)
 		}
 		os.Exit(1)
 	} else {

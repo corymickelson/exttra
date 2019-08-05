@@ -81,7 +81,8 @@ type (
 	}
 	Defector interface {
 		Report() [][]string // in csv format
-		Coll() []*Defect
+		Coll() *[]*Defect
+		Count() int
 	}
 	Defects struct {
 		coll          []*Defect
