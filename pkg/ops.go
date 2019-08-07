@@ -191,7 +191,6 @@ func (lt Lt) Apply() (map[uint32]interface{}, FieldType) {
 	v := <-out
 	return v, outType
 }
-
 func (gt Gt) Apply() (map[uint32]interface{}, FieldType) {
 	var (
 		t   *FieldType
@@ -223,7 +222,6 @@ func (gt Gt) Apply() (map[uint32]interface{}, FieldType) {
 	v := <-out
 	return v, outType
 }
-
 func (eq Eq) Apply() (map[uint32]interface{}, FieldType) {
 	var (
 		t   *FieldType
@@ -268,7 +266,6 @@ func (eq Eq) Apply() (map[uint32]interface{}, FieldType) {
 	v := <-out
 	return v, outType
 }
-
 func (a Addition) Apply() (map[uint32]interface{}, FieldType) {
 	var (
 		t   *FieldType
@@ -302,7 +299,6 @@ func (a Addition) Apply() (map[uint32]interface{}, FieldType) {
 	v := <-out
 	return v, outType
 }
-
 func (sub Subtraction) Apply() (map[uint32]interface{}, FieldType) {
 	var (
 		t   *FieldType
@@ -333,7 +329,6 @@ func (sub Subtraction) Apply() (map[uint32]interface{}, FieldType) {
 	v := <-out
 	return v, outType
 }
-
 func (not Not) Apply() (map[uint32]interface{}, FieldType) {
 	nm, t := not.Value.Apply()
 	out := make(map[uint32]interface{})
