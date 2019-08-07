@@ -106,6 +106,9 @@ func (i *Memory) Flush() error {
 		go i.fillShape(entity, quitter, v, excludes)
 		sent++
 	}
+	if sent == 0 {
+		return nil
+	}
 	for {
 		select {
 		case r := <-entity:
