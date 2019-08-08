@@ -117,7 +117,7 @@ func (p *parser) parseRow(row *[]string) error {
 			if item, en, err := colDef.Field.Convert(&field); err != nil {
 				d.Msg = err.Error()
 				n = nilNode
-			} else if en != nil { // todo: move explicit null to output
+			} else if en != nil {
 				n, err = data.NewNode(&id, data.V(nil))
 			} else {
 				if colDef.Field.Extension != nil {
@@ -260,10 +260,10 @@ func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 }
 
 // Parse the body of the file.
-// On success a Composer is returned, this node is the root node of the parse tree.
-// Otherwise an error is returned
+// The root node of the parse tree is returned.
+// Use this node for writing to an output, or creating a new view of the data.
+// See [output] and [view]
 func (p *parser) Parse() (pkg.Composer, error) {
-	ri := &p.headerIdx
 parse:
 	var (
 		err error = nil
@@ -273,7 +273,7 @@ parse:
 			return nil, err
 		}
 		if len(p.primary) > 0 {
-			k := uint64(*ri)
+			k := uint64(p.headerIdx)
 			if err = p.keyed(row, &k); err != nil {
 				return nil, err
 			}
@@ -289,12 +289,10 @@ parse:
 // If validation fails an error is returned
 func (p *parser) Validate(index *uint32) error {
 	var (
-		currentRow = &p.headerIdx
-		reader     = p.input.GetReader().(*csv.Reader)
-		def        = p.input.GetSchema().(*types.Schema)
 		headers    []string
-		i          uint64
-		field      string
+		currentRow        = &p.headerIdx
+		reader            = p.input.GetReader().(*csv.Reader)
+		def               = p.input.GetSchema().(*types.Schema)
 		hi         uint32 = 0
 		colRow            = make([]pkg.Composer, 0)
 	)
@@ -327,9 +325,7 @@ func (p *parser) Validate(index *uint32) error {
 	// iterate over header row
 	// if header is part of schema signature (def) create a new node
 
-	for i_, field_ := range headers {
-		i = uint64(i_)
-		field = field_
+	for i, field := range headers {
 		var col *types.ColumnDefinition
 		// Add field to header hash for dupe checking
 		dupe := false
@@ -364,8 +360,7 @@ func (p *parser) Validate(index *uint32) error {
 			reqHeadCount++
 		}
 		if col.Required && dupe {
-			// todo: how to handle required fields that are duplicated
-			return nil
+			log.Fatalf("parser/parser: duplicate column %s found", field)
 		}
 		id := pkg.GenNodeId(uint32(i), 0)
 		if col.Unique {

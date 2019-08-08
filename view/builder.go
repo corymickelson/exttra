@@ -79,7 +79,8 @@ func NewView(opts ...Opt) error {
 		id, colIdx, _ := col.Id()
 		(*vNext)[id] = false // toggle visible
 		for rowIdx, v := range i.keymap {
-			iid := uint64(colIdx)<<32 | uint64(rowIdx)
+			// iid := uint64(colIdx)<<32 | uint64(rowIdx)
+			iid := pkg.GenNodeId(colIdx, rowIdx)
 			col.(pkg.Editor).Toggle(iid, !v.(bool))
 		}
 	}
