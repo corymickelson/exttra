@@ -59,7 +59,6 @@ func SimpleToString(it interface{}) *string {
 }
 
 // Try to convert a field's value to a boolean.
-// Implements FieldLevelConverter.
 func BoolConverter(in *string) (interface{}, error) {
 	value := strings.TrimSpace(*in)
 	var out *bool = nil
@@ -95,8 +94,7 @@ func BoolConverter(in *string) (interface{}, error) {
 	return out, nil
 }
 
-// Try to convert a field's value to a float64.
-// Implements FieldLevelConverter.
+// Convert a field's value to an int64.
 func IntConverter(in *string) (interface{}, error) {
 	rmSpecialChars := specialChars.ReplaceAllString(*in, "")
 	out, err := strconv.ParseInt(rmSpecialChars, 10, 64)
@@ -106,8 +104,7 @@ func IntConverter(in *string) (interface{}, error) {
 	return out, nil
 }
 
-// Try to convert a field's value to a float64.
-// Implements FieldLevelConverter.
+// Convert a field's value to an float64.
 func FloatConverter(in *string) (interface{}, error) {
 	rmSpecialChars := specialChars.ReplaceAllString(*in, "")
 	out, err := strconv.ParseFloat(rmSpecialChars, 64)
@@ -117,8 +114,7 @@ func FloatConverter(in *string) (interface{}, error) {
 	return out, nil
 }
 
-// Try to convert a field's value to a time.Time
-// Implements FieldLevelConverter.
+// Convert a field's value to an time instance.
 func DateTimeConverter(in *string) (interface{}, error) {
 	if t, err := dateparse.ParseAny(strings.TrimSpace(*in)); err != nil {
 		return nil, err
