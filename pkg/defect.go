@@ -30,6 +30,7 @@ func NewDC() Defector {
 func (d *Defects) Disable() {
 	instance.enabled = false
 }
+
 // Get the current collection of defects.
 // This is a reference to the collection.
 // Any changes made to the results will be persisted to the Defect instance
@@ -39,6 +40,7 @@ func (d *Defects) Coll() *[]*Defect {
 func (d *Defects) Count() int {
 	return len(d.coll)
 }
+
 // Interrupt a FatalDefect to run the provided function
 // with the global collection of defects before the
 // process exits
@@ -97,6 +99,9 @@ func checkRecord(d *Defect) {
 // it's the responsibility of the function implementation/caller
 // to set sentinel return value(s) and handle nils
 func LogDefect(d *Defect) {
+	if d.Keys == nil {
+		d.Keys = map[string]string{}
+	}
 	defs := NewDC()
 	if defs.(*Defects).enabled {
 		checkRecord(d)
@@ -111,6 +116,9 @@ func LogDefect(d *Defect) {
 // To capture collected defects before the process exits
 // set the FatalExitInterrupt
 func FatalDefect(d *Defect) {
+	if d.Keys == nil {
+		d.Keys = map[string]string{}
+	}
 	defs := NewDC().(*Defects)
 	if defs.enabled {
 		checkRecord(d)
