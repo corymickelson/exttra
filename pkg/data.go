@@ -73,7 +73,7 @@ type (
 		Toggle(uint64, bool)
 		// Build an aggregated view of all excluded rows
 		Excludes() []bool
-		// Reset the tree to the initial visibility (nilmap). To see how visibility is created during construction
+		// Reset the tree to the initial visibility construction. To see how visibility is created during construction
 		// see [Parser]
 		Reset()
 		// LockWhile creates a read lock on the root node while the function is ran
