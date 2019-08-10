@@ -15,31 +15,18 @@ type (
 		// this results in a map with the row as the index and the expression result as the value
 		Apply() (map[uint32]interface{}, FieldType)
 	}
-
 	Lt struct {
 		Lhs, Rhs Composer
 	}
-
 	Gt struct {
 		Lhs, Rhs Composer
 	}
-
 	Eq struct {
 		Lhs, Rhs Composer
 	}
-
-	Addition struct {
-		Lhs, Rhs Composer
-	}
-
-	Subtraction struct {
-		Lhs, Rhs Composer
-	}
-
 	Not struct {
 		Value Operator
 	}
-
 	And struct {
 		Lhs, Rhs Operator
 	}
@@ -191,7 +178,6 @@ func (lt Lt) Apply() (map[uint32]interface{}, FieldType) {
 	v := <-out
 	return v, outType
 }
-
 func (gt Gt) Apply() (map[uint32]interface{}, FieldType) {
 	var (
 		t   *FieldType
@@ -223,7 +209,6 @@ func (gt Gt) Apply() (map[uint32]interface{}, FieldType) {
 	v := <-out
 	return v, outType
 }
-
 func (eq Eq) Apply() (map[uint32]interface{}, FieldType) {
 	var (
 		t   *FieldType
@@ -268,72 +253,6 @@ func (eq Eq) Apply() (map[uint32]interface{}, FieldType) {
 	v := <-out
 	return v, outType
 }
-
-func (a Addition) Apply() (map[uint32]interface{}, FieldType) {
-	var (
-		t   *FieldType
-		err error = nil
-	)
-	if t, err = assertTypeIn(
-		[]FieldType{INT, TIMESTAMP, FLOAT, DATE, STRING}, a.Lhs, a.Rhs); err != nil {
-		log.Fatal(err)
-	}
-	out := make(chan map[uint32]interface{})
-	var outType FieldType
-	switch *t {
-	case STRING:
-		go applyToT("", out, func(lv, rv interface{}) interface{} { return lv.(string) + rv.(string) }, a.Lhs, a.Rhs)
-		outType = STRING
-	case INT:
-		fallthrough
-	case FLOAT:
-		go applyToT(float64(0), out, func(l, r interface{}) interface{} { return l.(float64) + r.(float64) }, a.Lhs, a.Rhs)
-		outType = FLOAT
-	case DATE:
-		fallthrough
-	case TIMESTAMP:
-		go applyToT(time.Time{}, out, func(lv, rv interface{}) interface{} {
-			return time.Unix(lv.(time.Time).Unix()+rv.(time.Time).Unix(), 0)
-		}, a.Lhs, a.Rhs)
-		outType = TIMESTAMP
-	default:
-		log.Fatal("can not apply unknown in expression")
-	}
-	v := <-out
-	return v, outType
-}
-
-func (sub Subtraction) Apply() (map[uint32]interface{}, FieldType) {
-	var (
-		t   *FieldType
-		err error
-	)
-	if t, err = assertTypeIn(
-		[]FieldType{INT, TIMESTAMP, FLOAT, DATE}, sub.Lhs, sub.Rhs); err != nil {
-		log.Fatal(err)
-	}
-	out := make(chan map[uint32]interface{})
-	var outType FieldType
-	switch *t {
-	case INT:
-		fallthrough
-	case FLOAT:
-		go applyToT(float64(0), out, func(l, r interface{}) interface{} { return l.(float64) - r.(float64) }, sub.Lhs, sub.Rhs)
-		outType = FLOAT
-	case DATE:
-		fallthrough
-	case TIMESTAMP:
-		go applyToT(time.Time{}, out, func(lv, rv interface{}) interface{} {
-			return time.Unix(lv.(time.Time).Unix()-rv.(time.Time).Unix(), 0)
-		}, sub.Lhs, sub.Rhs)
-		outType = TIMESTAMP
-	default:
-		log.Fatal("can not apply unknown in expression")
-	}
-	v := <-out
-	return v, outType
-}
-
 func (not Not) Apply() (map[uint32]interface{}, FieldType) {
 	nm, t := not.Value.Apply()
 	out := make(map[uint32]interface{})
