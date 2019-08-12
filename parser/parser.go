@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 
@@ -100,8 +99,8 @@ func (p *parser) parseRow(row *[]string) error {
 		)
 		colIdx := uint64(i)
 		d := &pkg.Defect{
-			Col: strconv.Itoa(i),
-			Row: strconv.Itoa(int(*currentRow)),
+			Col: i,
+			Row: int(*currentRow),
 		}
 		colId := pkg.GenNodeId(uint32(colIdx), uint32(0))
 		if col, ok = p.data.Children()[colId]; !ok {
@@ -247,8 +246,8 @@ func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 		if exists {
 			pkg.LogDefect(&pkg.Defect{
 				Msg: fmt.Sprintf("Duplicate id [%s]", candidate),
-				Row: strconv.Itoa(int(*rowIdx)),
-				Col: strconv.Itoa(int(colIdx)),
+				Row: int(*rowIdx),
+				Col: int(colIdx),
 			})
 			p.keys[uint64(colIdx)][candidate]++
 			col.(pkg.Editor).Toggle(pkg.GenNodeId(colIdx, uint32(*rowIdx)), true)
@@ -367,10 +366,15 @@ func (p *parser) Validate(index *uint32) error {
 			p.primary = append(p.primary, id)
 		}
 		col.Index = id
-		if n, err := data.NewNode(&id,
+		opts := []data.Opt{
 			data.Nullable(col.Field.Nil),
 			data.Name(field),
-			data.Type(&col.Field.T)); err != nil {
+			data.Type(&col.Field.T),
+		}
+		if def.Indexed(field) {
+			opts = append(opts, data.Index(true))
+		}
+		if n, err := data.NewNode(&id, opts...); err != nil {
 			log.Fatalf(err.Error())
 		} else if err = p.data.Add(n, false); err != nil {
 			log.Fatalf(err.Error())
@@ -413,14 +417,14 @@ func (p *parser) fillInDefects() {
 			if v.Keys == nil {
 				(*defs)[i].Keys = make(map[string]string)
 			}
-			r := v.Row
-			if r == "" {
+			rowIdx := v.Row
+			if rowIdx == -1 {
 				continue
 			}
-			rowIdx, err := strconv.Atoi(r)
-			if err != nil {
-				continue
-			}
+			// rowIdx, err := strconv.Atoi(r)
+			// if err != nil {
+			// 	continue
+			// }
 			for _, pi := range p.primary {
 				col := p.data.FindById(pi)
 				_, colIdx, _ := col.Id()
