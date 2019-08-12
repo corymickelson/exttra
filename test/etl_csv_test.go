@@ -628,7 +628,7 @@ func filingtracker(testFile string) (Composer, error) {
 	root, err = p.Parse()
 	dc := NewDC()
 	defFile, _ := os.Create("/tmp/defects.csv")
-	defs := dc.Report()
+	defs := dc.Report(0)
 	dw := csv.NewWriter(defFile)
 	if err = dw.WriteAll(defs); err != nil {
 		log.Print(err.Error())

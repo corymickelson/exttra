@@ -53,6 +53,9 @@ type (
 		Nullable() *Nullable // Reset()
 		// Is the child node at [id] excluded (not visible at output)
 		Excluded(id uint64) (bool, error)
+		// Find a child node by value. This method only works if the node was constructed with the functional option Index()
+		// GetIndexed returns an array of id's as indexed nodes are not distinct.
+		GetIndexed(interface{}) ([]uint64, error)
 	}
 	// An Editor interface operates from the root node down. Any operation performed with an Editor entity will effect
 	// the entire tree. These effects are however complimentary to the value of the tree. Once a tree is constructed ( during parsing )
@@ -80,7 +83,7 @@ type (
 		LockWhile(func())
 	}
 	Defector interface {
-		Report() [][]string // in csv format
+		Report(originalOffset int) [][]string // in csv format
 		Coll() *[]*Defect
 		Count() int
 	}
@@ -92,8 +95,8 @@ type (
 	}
 	Opt    func(*Defects) (*Defects, error)
 	Defect struct {
-		Row  string
-		Col  string
+		Row  int
+		Col  int
 		Msg  string
 		Keys map[string]string
 	}

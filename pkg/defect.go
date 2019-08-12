@@ -3,6 +3,7 @@ package pkg
 import (
 	"log"
 	"os"
+	"strconv"
 	"sync"
 )
 
@@ -51,7 +52,7 @@ func (d *Defects) ExitInterrupt(f func([]*Defect)) {
 // Generate a csv report of collected defects.
 // If the schema defined column(s) as unique, these columns will
 // be appended to the resulting file.
-func (d *Defects) Report() [][]string {
+func (d *Defects) Report(originalOffset int) [][]string {
 	rows := make([][]string, 0, len(d.coll))
 	for k := range d.coll[0].Keys {
 		found := false
@@ -69,8 +70,16 @@ func (d *Defects) Report() [][]string {
 	rows = append(rows, d.Headers)
 	for _, v := range d.coll {
 		row := make([]string, len(d.Headers))
-		row[0] = v.Col
-		row[1] = v.Row
+		if v.Col == -1 {
+			row[0] = ""
+		} else {
+			row[0] = strconv.Itoa(v.Col + originalOffset)
+		}
+		if v.Row == -1 {
+			row[1] = ""
+		} else {
+			row[1] = strconv.Itoa(v.Row + originalOffset)
+		}
 		row[2] = v.Msg
 		for k, vv := range v.Keys {
 			for ii, j := range rows[0] {
@@ -88,12 +97,6 @@ func (def *Defect) Error() string {
 	return def.Msg
 }
 
-func checkRecord(d *Defect) {
-	if d.Col == "" || d.Row == "" {
-		log.Printf("Defects without column and row indices can not reference keys from input for results file")
-	}
-}
-
 // Adds a record to the global defector object
 // logging is NOT fatal, if a function uses LogDefect
 // it's the responsibility of the function implementation/caller
@@ -104,7 +107,6 @@ func LogDefect(d *Defect) {
 	}
 	defs := NewDC()
 	if defs.(*Defects).enabled {
-		checkRecord(d)
 		defs.(*Defects).coll = append(defs.(*Defects).coll, d)
 	} else {
 		log.Printf("defect: %s", d.Msg)
@@ -121,7 +123,6 @@ func FatalDefect(d *Defect) {
 	}
 	defs := NewDC().(*Defects)
 	if defs.enabled {
-		checkRecord(d)
 		defs.coll = append(defs.coll, d)
 		if defs.exitInterrupt != nil {
 			defs.exitInterrupt(defs.coll)
