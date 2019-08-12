@@ -25,6 +25,7 @@ type (
 		min      uint64
 		max      uint64
 		mutex    sync.RWMutex
+		index    map[interface{}][]uint64
 	}
 
 	Opt func(*node) (*node, error)
@@ -51,6 +52,7 @@ func NewNode(id *uint64, opts ...Opt) (pkg.Composer, error) {
 	}
 	i.parent = nil
 	i.nm = make([]map[uint64]bool, 1)
+	// initialize parser  nilmap
 	i.nm[0] = make(map[uint64]bool)
 	i.children = make(map[uint64]pkg.Composer)
 	for _, op := range opts {
@@ -60,6 +62,20 @@ func NewNode(id *uint64, opts ...Opt) (pkg.Composer, error) {
 		}
 	}
 	return i, nil
+}
+
+// Toggle indexing for children of this node.
+// Indexing is on the converted value. To use the index
+// use [GetIndex] with the value of the node your looking for.
+func Index(b bool) Opt {
+	return func(n *node) (*node, error) {
+		if b {
+			n.index = make(map[interface{}][]uint64)
+		} else {
+			n.index = nil
+		}
+		return n, nil
+	}
 }
 
 // Set the nullable property of a node
@@ -129,7 +145,36 @@ func (i *node) Add(n pkg.Composer, b bool) error {
 	if i.max < n.(*node).id&0xFFFFFFFF {
 		i.max = n.(*node).id & 0xFFFFFFFF
 	}
+	if i.index != nil {
+		return i.addIndex(n)
+	}
 	return nil
+}
+
+func (i *node) addIndex(n pkg.Composer) error {
+	var (
+		id, _, _ = n.Id()
+		val      = n.Value()
+	)
+	if vs, ok := i.index[val]; !ok {
+		i.index[val] = make([]uint64, 0)
+		i.index[val] = append(i.index[val], id)
+	} else {
+		vs = append(vs, id)
+		i.index[val] = vs
+	}
+	return nil
+}
+
+func (i *node) GetIndexed(v interface{}) ([]uint64, error) {
+	if i.index == nil {
+		return nil, errors.New("data/tree: node must be constructed with indexing on")
+	}
+	if val, ok := i.index[v]; !ok {
+		return nil, errors.New(fmt.Sprintf("data/tree: value %v not found", v))
+	} else {
+		return val, nil
+	}
 }
 
 // Min row contained in this nodes child collection
