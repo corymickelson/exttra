@@ -17,10 +17,13 @@ type (
 		Flush() error
 		base() *output
 	}
-
+	addOnArgItem struct {
+		col string
+		fn  func(args interface{}) *string
+	}
 	output struct {
 		src        pkg.Composer
-		addOns     map[string]func(args interface{}) *string
+		addOns     []addOnArgItem
 		addOnArgs  map[string]interface{}
 		formatters map[uint64]CustomFormatter
 	}
@@ -78,8 +81,9 @@ func Alias(col, name string) Opt {
 // and the value is the result of the AddOnGenerator
 func AddOn(name string, generator AddOnGenerator, args interface{}) Opt {
 	return func(output Out) (Out, error) {
-		output.base().addOns[name] = generator
-		output.base().addOnArgs[name] = args
+		base := output.base()
+		base.addOns = append(base.addOns, addOnArgItem{fn: generator, col: name})
+		base.addOnArgs[name] = args
 		return output, nil
 	}
 }
