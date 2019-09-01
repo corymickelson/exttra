@@ -23,8 +23,8 @@ func Csv(data pkg.Composer, dest interface{}, opts ...Opt) Out {
 	i.src = data
 	i.header = make([]string, 0)
 	i.dest = make([]interface{}, 0, 10)
-	i.addOns = make(map[string]func(args interface{}) *string)
 	i.addOnArgs = make(map[string]interface{})
+	i.addOns = make([]addOnArgItem, 0)
 	i.alias = make(map[uint64]string)
 	i.formatters = make(map[uint64]CustomFormatter)
 	if pkg.IsNil(dest) {
@@ -143,12 +143,12 @@ func (i *FlatFile) buildRows(cols [][]string) [][]string {
 			continue
 		}
 		addOnCount := 0
-		for n, f := range i.addOns {
+		for _, f := range i.addOns {
 			if ii == 0 {
-				row[len(cols)+addOnCount] = n
+				row[len(cols)+addOnCount] = f.col
 			} else {
-				arg := i.addOnArgs[n]
-				row[len(cols)+addOnCount] = *f(arg)
+				arg := i.addOnArgs[f.col]
+				row[len(cols)+addOnCount] = *f.fn(arg)
 			}
 			addOnCount++
 		}
@@ -204,4 +204,4 @@ func (i *FlatFile) buildColumn(out chan pkg.Pair, n pkg.Composer, colIdx int) {
 	}
 	out <- pkg.Pair{First: val, Second: colIdx}
 }
-func (i FlatFile) base() *output { return &i.output }
+func (i *FlatFile) base() *output { return &i.output }
