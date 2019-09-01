@@ -174,8 +174,8 @@ func (p *parser) parseRow(row *[]string) error {
 					}
 				case pkg.INT:
 					switch item.(type) {
-					case int:
-						n, err = data.NewNode(&id, data.V(item.(int)))
+					case int64:
+						n, err = data.NewNode(&id, data.V(item.(int64)))
 					default:
 						d.Msg = "parser/parse: bool was expected"
 						n = nilNode
@@ -289,6 +289,7 @@ parse:
 func (p *parser) Validate(index *uint32) error {
 	var (
 		headers    []string
+		dupes             = make([]string, 0)
 		currentRow        = &p.headerIdx
 		reader            = p.input.GetReader().(*csv.Reader)
 		def               = p.input.GetSchema().(*types.Schema)
@@ -359,7 +360,7 @@ func (p *parser) Validate(index *uint32) error {
 			reqHeadCount++
 		}
 		if col.Required && dupe {
-			log.Fatalf("parser/parser: duplicate column %s found", field)
+			dupes = append(dupes, field)
 		}
 		id := pkg.GenNodeId(uint32(i), 0)
 		if col.Unique {
@@ -383,13 +384,16 @@ func (p *parser) Validate(index *uint32) error {
 		}
 
 	}
+	if len(dupes) > 0 {
+		return errors.New(fmt.Sprintf("parser/parser: duplicate column(s) %s found= ", strings.Join(dupes, ",")))
+	}
 	cc := 0
 	for _, l := range p.data.Children() {
 		if l != nil {
 			cc++
 		}
 	}
-	if reqHeadCount != cc {
+	if reqHeadCount > cc {
 		// todo: missing column send back to sender
 		pkg.FatalDefect(&pkg.Defect{
 			Msg: "Missing required column(s)",

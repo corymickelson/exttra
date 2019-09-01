@@ -29,9 +29,9 @@ func SimpleToString(it interface{}) *string {
 		val = it.(string)
 	case bool:
 		if it.(bool) == true {
-			val = "true"
+			val = "1"
 		} else {
-			val = "false"
+			val = "0"
 		}
 	case time.Time:
 		val = it.(time.Time).Format(time.RFC3339)
@@ -61,9 +61,6 @@ func SimpleToString(it interface{}) *string {
 // Try to convert a field's value to a boolean.
 func BoolConverter(in *string) (interface{}, error) {
 	value := strings.TrimSpace(*in)
-	var out *bool = nil
-	t := true
-	f := false
 	isCurrency := regexp.MustCompile(`^\$[0-1]\.+`)
 	// this may seem ridiculous but there has been many instances where a column is a boolean but
 	// with values like $0 or $1
@@ -72,26 +69,26 @@ func BoolConverter(in *string) (interface{}, error) {
 	}
 	if strings.ToLower(value) == "true" || strings.ToLower(value) == "false" {
 		if strings.ToLower(value) == "true" {
-			out = &t
+			return true, nil
 		} else {
-			out = &f
+			return false, nil
 		}
 	}
 	if strings.ToLower(value) == "yes" || strings.ToLower(value) == "no" {
 		if strings.ToLower(value) == "yes" {
-			out = &t
+			return true, nil
 		} else {
-			out = &f
+			return false, nil
 		}
 	}
 	if value == "0" || value == "1" {
 		if strings.ToLower(value) == "1" {
-			out = &t
+			return true, nil
 		} else {
-			out = &f
+			return false, nil
 		}
 	}
-	return out, nil
+	return false, errors.New(fmt.Sprintf("types/convert: Unable to parse %s to bool", value))
 }
 
 // Convert a field's value to an int64.
