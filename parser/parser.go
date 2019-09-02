@@ -326,6 +326,7 @@ func (p *parser) Validate(index *uint32) error {
 	// if header is part of schema signature (def) create a new node
 
 	for i, field := range headers {
+		field = strings.TrimSpace(field)
 		var col *types.ColumnDefinition
 		// Add field to header hash for dupe checking
 		dupe := false
@@ -345,6 +346,7 @@ func (p *parser) Validate(index *uint32) error {
 			for _, a := range c.Aliases {
 				if field == a {
 					col = c
+					field = c.Name
 					exit = true
 					break
 				}

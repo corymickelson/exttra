@@ -2,7 +2,7 @@ package pkg
 
 type (
 	FieldType           int
-	FieldLevelConverter func(*string) (interface{}, error)
+	FieldLevelConverter func(*string, ...interface{}) (interface{}, error)
 	FieldExtension      func(it interface{}) (interface{}, error)
 	StringifyField      func(it interface{}) *string
 	Pair                struct {
