@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -59,7 +60,7 @@ func SimpleToString(it interface{}) *string {
 }
 
 // Try to convert a field's value to a boolean.
-func BoolConverter(in *string) (interface{}, error) {
+func BoolConverter(in *string, _ ...interface{}) (interface{}, error) {
 	value := strings.TrimSpace(*in)
 	isCurrency := regexp.MustCompile(`^\$[0-1]\.+`)
 	// this may seem ridiculous but there has been many instances where a column is a boolean but
@@ -92,7 +93,7 @@ func BoolConverter(in *string) (interface{}, error) {
 }
 
 // Convert a field's value to an int64.
-func IntConverter(in *string) (interface{}, error) {
+func IntConverter(in *string, _ ...interface{}) (interface{}, error) {
 	rmSpecialChars := specialChars.ReplaceAllString(*in, "")
 	out, err := strconv.ParseInt(rmSpecialChars, 10, 64)
 	if err != nil {
@@ -102,7 +103,7 @@ func IntConverter(in *string) (interface{}, error) {
 }
 
 // Convert a field's value to an float64.
-func FloatConverter(in *string) (interface{}, error) {
+func FloatConverter(in *string, _ ...interface{}) (interface{}, error) {
 	rmSpecialChars := specialChars.ReplaceAllString(*in, "")
 	out, err := strconv.ParseFloat(rmSpecialChars, 64)
 	if err != nil {
@@ -112,9 +113,28 @@ func FloatConverter(in *string) (interface{}, error) {
 }
 
 // Convert a field's value to an time instance.
-func DateTimeConverter(in *string) (interface{}, error) {
+func DateTimeConverter(in *string, retry ...interface{}) (interface{}, error) {
 	if t, err := dateparse.ParseAny(strings.TrimSpace(*in)); err != nil {
-		return nil, err
+		if len(retry) > 0 && retry[0].(bool) {
+			log.Printf("types/convert: unable to parse %s to a known date/time", *in)
+			return nil, err
+		}
+		log.Printf("types/convert: unable to parse %s to a known date/time format. "+
+			"Making final attempt", *in)
+		monDayYearRx := regexp.MustCompile("[0-9]{2}[-][0-9]{2}[-][0-9]{4}")
+		if monDayYearRx.MatchString(*in) {
+			var (
+				candidate string
+				attempt   string
+				segments  []string
+			)
+			candidate = monDayYearRx.FindString(*in)
+			segments = strings.Split(candidate, "-")
+			attempt = fmt.Sprintf("%s-%s-%s", segments[2], segments[0], segments[1])
+			return DateTimeConverter(&attempt, true)
+		} else {
+			return nil, err
+		}
 	} else {
 		return t, nil
 	}
