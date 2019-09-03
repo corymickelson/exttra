@@ -327,6 +327,9 @@ func (p *parser) Validate(index *uint32) error {
 
 	for i, field := range headers {
 		field = strings.TrimSpace(field)
+		if field == "" {
+			break
+		}
 		var col *types.ColumnDefinition
 		// Add field to header hash for dupe checking
 		dupe := false
@@ -363,6 +366,10 @@ func (p *parser) Validate(index *uint32) error {
 		}
 		if col.Required && dupe {
 			dupes = append(dupes, field)
+		} else if dupe && !col.Required {
+			// If this is a duplicate row AND  the row is not required
+			// The parser will use the first instance of the column found
+			continue
 		}
 		id := pkg.GenNodeId(uint32(i), 0)
 		if col.Unique {
