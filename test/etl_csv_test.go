@@ -557,7 +557,7 @@ func filingtracker(testFile string) (Composer, error) {
 		timeToDate output.CustomFormatter = func(it *string) {
 			*it = (*it)[:10]
 		}
-		loanIdConverter FieldLevelConverter = func(id *string) (interface{}, error) {
+		loanIdConverter FieldLevelConverter = func(id *string, _ ...interface{}) (interface{}, error) {
 			if id == nil {
 				return nil, errors.New("ID must not be null")
 			} else if idFormat.MatchString(*id) {
