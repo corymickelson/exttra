@@ -50,10 +50,11 @@ if er != nil {
 // Creat a new input source from the loaded file and the definition
 subject := input.Csv(src, def)
 p := parser.NewParser(&subject)
+// Parser has two functions, the first to validate the schema and set column information on the root node and parser
 if err = p.Validate(nil); err != nil {
     return nil, err
 }
-
+// The parsers other function is to parse the body of the file into the data structure exttra uses for writing and creating views
 table, err = p.Parse()
 if err != nil {
     log.Fatal(err)
