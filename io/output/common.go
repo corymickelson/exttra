@@ -58,7 +58,6 @@ func Alias(col, name string) Opt {
 		if pkg.IsNil(target) {
 			// This is not considered a fatal error
 			log.Printf("io/output/common: Column %s not found", col)
-			//return out, errors.New(fmt.Sprintf("output.Alias Column %s not found", col))
 			return out, nil
 		}
 		id, _, _ := target.Id()

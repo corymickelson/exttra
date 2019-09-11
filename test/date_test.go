@@ -43,15 +43,15 @@ func testDate(i interface{}) {
 		explicitNull              = "NULL"
 	)
 	nullable := &pkg.Nullable{Allowed: true, Variants: []string{"null", "NULL", ""}, ReplaceWith: &explicitNull}
-	nullableDate, err := types.NewField(&types.Field{T: pkg.DATE}, nullable)
+	nullableDate, err := types.NewField(pkg.DATE, nullable)
 	nonNil := &pkg.Nullable{Allowed: false}
-	nonNilDate, err := types.NewField(&types.Field{T: pkg.DATE}, nonNil)
+	nonNilDate, err := types.NewField(pkg.DATE, nonNil)
 	if null, err = data.NewNode(nil, data.V(nil)); err != nil {
 		t.Fatal()
 	}
 	table := []struct {
 		file   [][]string
-		fields []*types.Field
+		fields []types.Field
 		expect [][]string
 	}{
 		{
@@ -59,7 +59,7 @@ func testDate(i interface{}) {
 				{"A", "B", "C", "D"},
 				{"12/01/2018", "01/10/1920", "01/03/1999", "12/1/2018"},
 			},
-			fields: []*types.Field{
+			fields: []types.Field{
 				nonNilDate, nonNilDate, nonNilDate, nonNilDate,
 			},
 			expect: [][]string{
@@ -72,7 +72,7 @@ func testDate(i interface{}) {
 				{"A", "B", "C", "D"},
 				{"", "1/10/2020", "01/03/1999", "5/5/2000"},
 			},
-			fields: []*types.Field{
+			fields: []types.Field{
 				nullableDate, nonNilDate, nonNilDate, nonNilDate,
 			},
 			expect: [][]string{
@@ -84,7 +84,7 @@ func testDate(i interface{}) {
 				{"A", "B", "C", "D"},
 				{"foo bar", "01/03/1999", "1/10/2020", "5/5/2000"},
 			},
-			fields: []*types.Field{
+			fields: []types.Field{
 				nullableDate, nonNilDate, nonNilDate, nonNilDate,
 			},
 			expect: [][]string{

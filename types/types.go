@@ -24,6 +24,7 @@ type (
 const (
 	Convert Prop = iota
 	ToString
+	Extension
 )
 
 // Check the raw value for nil
@@ -124,24 +125,24 @@ func Override(m Prop, fn interface{}) FieldOverride {
 }
 
 // Create a new field.
-func NewField(field *Field, nilable *pkg.Nullable, opts ...FieldOverride) (*Field, error) {
-	var err error = nil
-	if field == nil || nilable == nil {
-		return nil, errors.New("a new field requires a Field, and Nullable")
+func NewField(fieldType pkg.FieldType, nullable *pkg.Nullable, opts ...FieldOverride) (field Field, err error) {
+	if nullable == nil {
+		return Field{}, errors.New("a new field requires a Field, and Nullable")
 	}
+	field.T = fieldType
 	field.Extension = nil
 	defaultNil := ""
 	setDefaultNil := false
-	for _, v := range nilable.Variants {
+	for _, v := range nullable.Variants {
 		if v == defaultNil {
 			setDefaultNil = true
 			break
 		}
 	}
 	if !setDefaultNil {
-		nilable.Variants = append(nilable.Variants, "")
+		nullable.Variants = append(nullable.Variants, "")
 	}
-	field.Nil = nilable
+	field.Nil = nullable
 	if field.T == pkg.CUSTOM {
 		if len(opts) < 2 {
 			log.Fatal("custom fields require opts for convert and stringify functions")
@@ -166,11 +167,12 @@ func NewField(field *Field, nilable *pkg.Nullable, opts ...FieldOverride) (*Fiel
 		}
 	}
 	for _, opt := range opts {
-		field, err = opt(field)
-		if err != nil {
+		if fieldWithOpt, err := opt(&field); err != nil {
 			pkg.FatalDefect(&pkg.Defect{
 				Msg: err.Error(),
 			})
+		} else {
+			field = *fieldWithOpt
 		}
 	}
 	return field, nil
