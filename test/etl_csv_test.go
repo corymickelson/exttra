@@ -577,20 +577,20 @@ func filingtracker(testFile string) (Composer, error) {
 	)
 
 	dateNilable, err := types.NewField(
-		&types.Field{T: DATE},
+		DATE,
 		nullableDate,
 		types.Extend(types.Convert, dateLimits),
 	)
 	loanId, err := types.NewField(
-		&types.Field{T: CUSTOM},
+		CUSTOM,
 		nonNull,
 		types.Override(types.Convert, loanIdConverter),
 		types.Override(types.ToString, loanIdToString))
 	stringNilable, err := types.NewField(
-		&types.Field{T: STRING},
+		STRING,
 		nullable)
 	floatNilable, err := types.NewField(
-		&types.Field{T: FLOAT},
+		FLOAT,
 		nullable)
 
 	reportDate := InterrogateDate(&testFile)

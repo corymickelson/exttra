@@ -13,7 +13,7 @@ type (
 
 	ColumnDefinition struct {
 		Name     string
-		Field    *Field
+		Field    Field
 		Unique   bool
 		Aliases  []string
 		Required bool
@@ -32,7 +32,7 @@ type (
 // Column
 // Adds a new column to the schema with the column Name as Name,
 // and types as FieldType
-func Column(name string, t *Field, required bool, unique ...bool) Opt {
+func Column(name string, t Field, required bool, unique ...bool) Opt {
 	return func(schema *Schema) *Schema {
 		uni := false
 		if len(unique) > 0 {

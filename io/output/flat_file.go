@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/csv"
 	"errors"
-	"github.com/loanpal-engineering/exttra/types"
 	"log"
 	"os"
+
+	"github.com/loanpal-engineering/exttra/types"
 
 	"github.com/loanpal-engineering/exttra/pkg"
 )
