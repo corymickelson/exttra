@@ -37,3 +37,4 @@ func Csv(source io.Reader, def types.Signature) Input {
 	i.reader.ReuseRecord = true
 	return i
 }
+

@@ -40,7 +40,7 @@ func NewParser(in *input.Input) *parser {
 	i.keys = make(map[uint64]map[string]uint8)
 	return i
 }
-func (p *parser) readRow() *[]string {
+func (p *parser) readRow() []string {
 	reader := p.input.GetReader().(*csv.Reader)
 	currentRow := &p.headerIdx
 	var (
@@ -71,7 +71,7 @@ func (p *parser) readRow() *[]string {
 		}
 		return nil
 	}
-	return &row
+	return row
 }
 func (p *parser) colDef(colIdx uint64, defs []*types.ColumnDefinition) *types.ColumnDefinition {
 	i := 0
@@ -85,39 +85,41 @@ loop:
 	}
 	return nil
 }
-func (p *parser) parseRow(row *[]string) error {
+func (p *parser) parseRow(row []string) error {
 	currentRow := &p.headerIdx
-	colRow := make([]pkg.Composer, 0)
-	for i, field := range *row {
+	colRow := make([]pkg.Composer, len(*p.data.Children()))
+	offset := 0
+	for i, field := range row {
 		var (
 			id     uint64
 			n      pkg.Composer            = nil
 			col    pkg.Composer            = nil
 			err    error                   = nil
 			colDef *types.ColumnDefinition = nil
-			ok                             = false
 		)
 		colIdx := uint64(i)
-		d := &pkg.Defect{
+		d := pkg.Defect{
 			Col: i,
 			Row: int(*currentRow),
 		}
 		colId := pkg.GenNodeId(uint32(colIdx), uint32(0))
-		if col, ok = p.data.Children()[colId]; !ok {
+		if col = p.data.FindById(colId); col == nil {
+			offset++
 			continue
 		} else {
+			p.input.GetSchema().(*types.Schema).Cols()
 			colDef = p.colDef(colId, p.input.GetSchema().(*types.Schema).Cols())
 			if colDef == nil {
 				return errors.New(fmt.Sprint("parser/Parse: schema column definition not found for index %l", colIdx))
 			}
 
 			id = pkg.GenNodeId(uint32(colIdx), *currentRow)
-			nilNode, _ := data.NewNode(&id, data.V(nil))
+			nilNode, _ := data.NewNode(&id)
 			if item, en, err := colDef.Field.Convert(&field); err != nil {
 				d.Msg = err.Error()
 				n = nilNode
 			} else if en != nil {
-				n, err = data.NewNode(&id, data.V(nil))
+				n, err = data.NewNode(&id)
 			} else {
 				if colDef.Field.Extension != nil {
 					if item, err = colDef.Field.Extension(item); err != nil || item == nil {
@@ -128,8 +130,9 @@ func (p *parser) parseRow(row *[]string) error {
 						if err = col.Add(n, true); err != nil {
 							d.Msg = err.Error()
 						}
-						colRow = append(colRow, n)
+						colRow[i-offset] = n
 						if d.Msg != "" {
+							pkg.LogDefect(d)
 						}
 						continue
 					}
@@ -195,38 +198,37 @@ func (p *parser) parseRow(row *[]string) error {
 				d.Msg = err.Error()
 				pkg.FatalDefect(d)
 			}
-			colRow = append(colRow, n)
-
+			colRow[i-offset] = n
 		}
 	}
-	return p.linkRow(&colRow)
+	return p.linkRow(colRow)
 }
-func (p *parser) linkRow(row *[]pkg.Composer) error {
+func (p *parser) linkRow(row []pkg.Composer)  error {
 	var (
 		i         = 0
 		err error = nil
 	)
 loop:
-	if i > len(*row) {
+	if i > len(row) {
 		return err
 	}
 	if i == 0 {
-		(*row)[i].Prev(nil)
-		(*row)[i].Next((*row)[i+1])
+		(row)[i].Prev(nil)
+		(row)[i].Next((row)[i+1])
 		i++
 		goto loop
-	} else if i == len(*row)-1 {
-		(*row)[i].Next(nil)
-		(*row)[i].Prev((*row)[i-1])
+	} else if i == len(row)-1 {
+		(row)[i].Next(nil)
+		(row)[i].Prev((row)[i-1])
 		return err
 	} else {
-		(*row)[i].Next((*row)[i+1])
-		(*row)[i].Prev((*row)[i-1])
+		(row)[i].Next((row)[i+1])
+		(row)[i].Prev((row)[i-1])
 		i++
 		goto loop
 	}
 }
-func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
+func (p *parser) keyed(row []string, rowIdx *uint64) error {
 	for _, pi := range p.primary {
 		var (
 			col    pkg.Composer = nil
@@ -241,10 +243,10 @@ func (p *parser) keyed(row *[]string, rowIdx *uint64) error {
 			colKeyMap := make(map[string]uint8)
 			p.keys[uint64(colIdx)] = colKeyMap
 		}
-		candidate := strings.TrimSpace((*row)[colIdx])
+		candidate := strings.TrimSpace((row)[colIdx])
 		_, exists := p.keys[uint64(colIdx)][candidate]
 		if exists {
-			pkg.LogDefect(&pkg.Defect{
+			pkg.LogDefect(pkg.Defect{
 				Msg: fmt.Sprintf("Duplicate id [%s]", candidate),
 				Row: int(*rowIdx),
 				Col: int(colIdx),
@@ -397,18 +399,18 @@ func (p *parser) Validate(index *uint32) error {
 		return errors.New(fmt.Sprintf("parser/parser: duplicate column(s) %s found= ", strings.Join(dupes, ",")))
 	}
 	cc := 0
-	for _, l := range p.data.Children() {
+	for _, l := range *p.data.Children() {
 		if l != nil {
 			cc++
 		}
 	}
 	if reqHeadCount > cc {
 		// todo: missing column send back to sender
-		pkg.FatalDefect(&pkg.Defect{
+		pkg.FatalDefect(pkg.Defect{
 			Msg: "Missing required column(s)",
 		})
 	}
-	return p.linkRow(&colRow)
+	return p.linkRow(colRow)
 }
 
 // If a primary key is defined on the input,
@@ -434,10 +436,7 @@ func (p *parser) fillInDefects() {
 			if rowIdx == -1 {
 				continue
 			}
-			// rowIdx, err := strconv.Atoi(r)
-			// if err != nil {
-			// 	continue
-			// }
+
 			for _, pi := range p.primary {
 				col := p.data.FindById(pi)
 				_, colIdx, _ := col.Id()

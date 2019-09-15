@@ -51,8 +51,8 @@ func (i *Memory) leftMostNode() (pkg.Composer, error) {
 	// Left most node in the tree
 	var lhs pkg.Composer
 	// Doesnt matter which child, just pick one
-	for id := range i.src.Children() {
-		lhs = i.src.Children()[id]
+	for id := range *i.src.Children() {
+		lhs = (*i.src.Children())[id]
 		break
 	}
 	if lhs == nil {
@@ -98,7 +98,7 @@ func (i *Memory) Flush() error {
 		return err
 	}
 	excludes := i.src.(pkg.Editor).Excludes()
-	for _, v := range lhs.Children() {
+	for _, v := range *lhs.Children() {
 		_, _, row := v.Id()
 		if excludes[row] {
 			continue

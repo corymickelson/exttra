@@ -12,18 +12,18 @@ type (
 	}
 
 	ColumnDefinition struct {
-		Name     string
-		Field    Field
-		Unique   bool
-		Aliases  []string
-		Required bool
 		Index    uint64
+		Field    Field
+		Aliases  []string
+		Name     string
+		Unique   bool
+		Required bool
 	}
 	Schema struct {
-		columns []*ColumnDefinition
 		dupes   map[string][]int
 		headers []string
 		indices []string
+		columns []*ColumnDefinition
 	}
 
 	Opt func(schema *Schema) *Schema
@@ -84,7 +84,7 @@ func Alias(columnName string, name string) Opt {
 			}
 		}
 		if !found {
-			pkg.FatalDefect(&pkg.Defect{
+			pkg.FatalDefect(pkg.Defect{
 				Msg: fmt.Sprintf("column [ %s ] does not exist on this schema", name),
 			})
 		}
