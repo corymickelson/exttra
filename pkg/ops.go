@@ -51,11 +51,11 @@ func assertTypeIn(ts []FieldType, l, r Composer) (*FieldType, error) {
 		if rOk && lOk {
 			break
 		}
-		if l.T() != nil && *l.T() == tt {
+		if l.T() != UNKNOWN && l.T() == tt {
 			lt = tt
 			lOk = true
 		}
-		if r.T() != nil && *r.T() == tt {
+		if r.T() != UNKNOWN && r.T() == tt {
 			rt = tt
 			rOk = true
 		}
@@ -78,7 +78,7 @@ func applyToT(t interface{}, out chan map[uint32]interface{}, op func(l, r inter
 		fixed   = r.Max() == 0
 	)
 	excludes := l.(Editor).Excludes()
-	for _, ll := range l.Children() {
+	for _, ll := range *l.Children() {
 		var (
 			lv = ll.Value()
 			rv interface{}

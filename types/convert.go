@@ -51,7 +51,7 @@ func SimpleToString(it interface{}) *string {
 	case int8:
 		val = strconv.Itoa(it.(int))
 	default:
-		pkg.LogDefect(&pkg.Defect{
+		pkg.LogDefect(pkg.Defect{
 			Msg: fmt.Sprintf("can not convert \"%v\" to string", it),
 		})
 		val = empty

@@ -14,10 +14,10 @@ type (
 
 	Field struct {
 		T         pkg.FieldType
-		Nil       *pkg.Nullable
 		convert   pkg.FieldLevelConverter
 		toString  pkg.StringifyField
 		Extension pkg.FieldExtension
+		Nil       *pkg.Nullable
 	}
 )
 
@@ -168,7 +168,7 @@ func NewField(fieldType pkg.FieldType, nullable *pkg.Nullable, opts ...FieldOver
 	}
 	for _, opt := range opts {
 		if fieldWithOpt, err := opt(&field); err != nil {
-			pkg.FatalDefect(&pkg.Defect{
+			pkg.FatalDefect(pkg.Defect{
 				Msg: err.Error(),
 			})
 		} else {

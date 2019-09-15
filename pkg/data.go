@@ -2,9 +2,9 @@ package pkg
 
 type (
 	Nullable struct {
-		Allowed     bool
 		Variants    []string
 		ReplaceWith *string
+		Allowed     bool
 	}
 	// Composer is the primary building block of the exttra tree
 	Composer interface {
@@ -13,9 +13,9 @@ type (
 		// Get the value of this node.
 		Value() interface{}
 		// Get the value type of this node.
-		T() *FieldType
+		T() FieldType
 		// Get this nodes children as a map[node id]node ptr.
-		Children() map[uint64]Composer
+		Children() *map[uint64]Composer
 		// Find a child node by either name of id.
 		// If id is available use [FindById].
 		// If the node is not found nil is returned.
@@ -50,7 +50,7 @@ type (
 		// manually via explicit manipulating a node nilmap (not advised).
 		Null() map[uint64]bool
 		// Get the nullability of a node
-		Nullable() *Nullable // Reset()
+		Nullable() Nullable // Reset()
 		// Is the child node at [id] excluded (not visible at output)
 		Excluded(id uint64) (bool, error)
 		// Find a child node by value. This method only works if the node was constructed with the functional option Index()
@@ -80,7 +80,7 @@ type (
 		// see [Parser]
 		Reset()
 		// LockWhile creates a read lock on the root node while the function is ran
-		LockWhile(func())
+		// LockWhile(func())
 	}
 	Defector interface {
 		Report(originalOffset int) [][]string // in csv format
@@ -88,17 +88,17 @@ type (
 		Count() int
 	}
 	Defects struct {
-		coll          []*Defect
 		exitInterrupt func([]*Defect)
 		Headers       []string
+		coll          []*Defect
 		enabled       bool
 	}
 	Opt    func(*Defects) (*Defects, error)
 	Defect struct {
 		Row  int
 		Col  int
-		Msg  string
 		Keys map[string]string
+		Msg  string
 	}
 )
 
