@@ -2,9 +2,9 @@ package pkg
 
 type (
 	Nullable struct {
-		Variants    []string
-		ReplaceWith *string
-		Allowed     bool
+		Variants    []string // 24
+		ReplaceWith *string  // 8
+		Allowed     bool     // 1
 	}
 	// Composer is the primary building block of the exttra tree
 	Composer interface {

@@ -149,12 +149,22 @@ func (p *parser) parseRow(row []string) error {
 						d.Msg = "parser/parse: time was expected"
 						n = nilNode
 					}
+				case pkg.FLOAT32:
+					switch item.(type) {
+					case float32:
+						n, err = data.NewNode(&id, data.V(item.(float32)))
+					default:
+						d.Msg = "parser/parse: float32 was expected"
+						n = nilNode
+					}
 				case pkg.FLOAT:
+					fallthrough
+				case pkg.FLOAT64:
 					switch item.(type) {
 					case float64:
 						n, err = data.NewNode(&id, data.V(item.(float64)))
 					default:
-						d.Msg = "parser/parse: float was expected"
+						d.Msg = "parser/parse: float64 was expected"
 						n = nilNode
 					}
 				case pkg.CUSTOM:
@@ -175,12 +185,72 @@ func (p *parser) parseRow(row []string) error {
 						d.Msg = "parser/parse: bool was expected"
 						n = nilNode
 					}
+				case pkg.UINT:
+					fallthrough
+				case pkg.UINT64:
+					switch item.(type) {
+					case uint64:
+						n, err = data.NewNode(&id, data.V(item.(uint64)))
+					default:
+						d.Msg = "parser/parse: uint64 was expected"
+						n = nilNode
+					}
 				case pkg.INT:
+					fallthrough
+				case pkg.INT64:
 					switch item.(type) {
 					case int64:
 						n, err = data.NewNode(&id, data.V(item.(int64)))
 					default:
-						d.Msg = "parser/parse: bool was expected"
+						d.Msg = "parser/parse: int64 was expected"
+						n = nilNode
+					}
+				case pkg.UINT32:
+					switch item.(type) {
+					case uint32:
+						n, err = data.NewNode(&id, data.V(item.(uint32)))
+					default:
+						d.Msg = "parser/parse: uint32 was expected"
+						n = nilNode
+					}
+				case pkg.INT32:
+					switch item.(type) {
+					case int32:
+						n, err = data.NewNode(&id, data.V(item.(int32)))
+					default:
+						d.Msg = "parser/parse: int32 was expected"
+						n = nilNode
+					}
+				case pkg.UINT16:
+					switch item.(type) {
+					case uint16:
+						n, err = data.NewNode(&id, data.V(item.(uint16)))
+					default:
+						d.Msg = "parser/parse: uint32 was expected"
+						n = nilNode
+					}
+				case pkg.INT16:
+					switch item.(type) {
+					case int16:
+						n, err = data.NewNode(&id, data.V(item.(int16)))
+					default:
+						d.Msg = "parser/parse: int16 was expected"
+						n = nilNode
+					}
+				case pkg.UINT8:
+					switch item.(type) {
+					case uint8:
+						n, err = data.NewNode(&id, data.V(item.(uint8)))
+					default:
+						d.Msg = "parser/parse: uint8 was expected"
+						n = nilNode
+					}
+				case pkg.INT8:
+					switch item.(type) {
+					case int8:
+						n, err = data.NewNode(&id, data.V(item.(int8)))
+					default:
+						d.Msg = "parser/parse: int8 was expected"
 						n = nilNode
 					}
 				default:
@@ -203,7 +273,7 @@ func (p *parser) parseRow(row []string) error {
 	}
 	return p.linkRow(colRow)
 }
-func (p *parser) linkRow(row []pkg.Composer)  error {
+func (p *parser) linkRow(row []pkg.Composer) error {
 	var (
 		i         = 0
 		err error = nil

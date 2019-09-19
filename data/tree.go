@@ -11,15 +11,15 @@ import (
 
 type (
 	node struct {
-		t        pkg.FieldType
-		nullable pkg.Nullable
-		mutex    sync.RWMutex
 		id       uint64
 		min      uint64
 		max      uint64
-		version  uint
+		t        pkg.FieldType // 32
+		v        interface{} // 16
 		name     string
-		v        interface{}
+		version  uint          // 32
+		mutex    sync.RWMutex
+		nullable pkg.Nullable
 		parent   pkg.Composer
 		next     pkg.Composer
 		prev     pkg.Composer
@@ -81,6 +81,7 @@ func Index(b bool) Opt {
 }
 
 // Set the nullable property of a node
+// nullable is copied NOT referenced by the node
 func Nullable(nullable *pkg.Nullable) Opt {
 	return func(n *node) (*node, error) {
 		n.nullable = *nullable
@@ -89,6 +90,7 @@ func Nullable(nullable *pkg.Nullable) Opt {
 }
 
 // Add the type [t] of value held by this node.
+// t is copied NOT referenced by the node
 func Type(t *pkg.FieldType) Opt {
 	return func(n *node) (*node, error) {
 		n.t = *t
@@ -127,6 +129,8 @@ func (i *node) Value() interface{} {
 }
 
 // Get a nodes children
+// returns a reference to the children map
+// The child should NOT be mutated, a reference is used to mitigate a potentially large copy operation
 func (i *node) Children() *map[uint64]pkg.Composer {
 	return &i.children
 }
@@ -374,6 +378,7 @@ func (i *node) Excludes() []bool {
 func (i *node) Nullable() pkg.Nullable {
 	return i.nullable
 }
+
 // func (i *node) LockWhile(fn func()) {
 // 	n := root(i)
 // 	n.mutex.RLock()
