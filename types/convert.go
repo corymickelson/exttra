@@ -37,19 +37,29 @@ func SimpleToString(it interface{}) *string {
 	case time.Time:
 		val = it.(time.Time).Format(time.RFC3339)
 	case float64:
-		val = fmt.Sprintf("%f", it.(float64))
+		val = fmt.Sprint(it.(float64))
 	case float32:
-		val = fmt.Sprintf("%f", it.(float32))
+		val = fmt.Sprint(it.(float32))
+	case uint:
+		val = fmt.Sprint(it.(uint))
+	case uint64:
+		val = fmt.Sprint(it.(uint64))
+	case uint32:
+		val = fmt.Sprint(it.(uint32))
+	case uint16:
+		val = fmt.Sprint(it.(uint16))
+	case uint8:
+		val = fmt.Sprint(it.(uint8))
 	case int:
-		val = strconv.Itoa(it.(int))
+		val = fmt.Sprint(it.(int))
 	case int64:
-		val = strconv.FormatInt(it.(int64), 10)
+		val = fmt.Sprint(it.(int64))
 	case int32:
-		val = strconv.Itoa(it.(int))
+		val = fmt.Sprint(it.(int32))
 	case int16:
-		val = strconv.Itoa(it.(int))
+		val = fmt.Sprint(it.(int16))
 	case int8:
-		val = strconv.Itoa(it.(int))
+		val = fmt.Sprint(it.(int8))
 	default:
 		pkg.LogDefect(pkg.Defect{
 			Msg: fmt.Sprintf("can not convert \"%v\" to string", it),
@@ -92,24 +102,136 @@ func BoolConverter(in *string, _ ...interface{}) (interface{}, error) {
 	return false, errors.New(fmt.Sprintf("types/convert: Unable to parse %s to bool", value))
 }
 
-// Convert a field's value to an int64.
-func IntConverter(in *string, _ ...interface{}) (interface{}, error) {
-	rmSpecialChars := specialChars.ReplaceAllString(*in, "")
-	out, err := strconv.ParseInt(rmSpecialChars, 10, 64)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("can not convert \"%s\" to int, parsing error: %s", *in, err.Error()))
+func int8Converter(in *string, _ ...interface{}) (out interface{}, err error) {
+	var base int64
+	if base, err = strconv.ParseInt(specialChars.ReplaceAllString(*in, ""), 10, 8); err != nil {
+		return
 	}
-	return out, nil
+	out = int8(base)
+	return
+}
+func int16Converter(in *string, _ ...interface{}) (out interface{}, err error) {
+	var base int64
+	if base, err = strconv.ParseInt(specialChars.ReplaceAllString(*in, ""), 10, 16); err != nil {
+		return
+	}
+	out = int16(base)
+	return
+}
+func int32Converter(in *string, _ ...interface{}) (out interface{}, err error) {
+	var base int64
+	if base, err = strconv.ParseInt(specialChars.ReplaceAllString(*in, ""), 10, 32); err != nil {
+		return
+	}
+	out = int32(base)
+	return
+}
+func int64Converter(in *string, _ ...interface{}) (out interface{}, err error) {
+	var base int64
+	if base, err = strconv.ParseInt(specialChars.ReplaceAllString(*in, ""), 10, 64); err != nil {
+		return
+	}
+	out = base
+	return
+}
+func uint8Converter(in *string, _ ...interface{}) (out interface{}, err error) {
+	var base uint64
+	if base, err = strconv.ParseUint(specialChars.ReplaceAllString(*in, ""), 10, 8); err != nil {
+		return
+	}
+	out = uint8(base)
+	return
+}
+func uint16Converter(in *string, _ ...interface{}) (out interface{}, err error) {
+	var base uint64
+	if base, err = strconv.ParseUint(specialChars.ReplaceAllString(*in, ""), 10, 16); err != nil {
+		return
+	}
+	out = uint16(base)
+	return
+}
+func uint32Converter(in *string, _ ...interface{}) (out interface{}, err error) {
+	var base uint64
+	if base, err = strconv.ParseUint(specialChars.ReplaceAllString(*in, ""), 10, 32); err != nil {
+		return
+	}
+	out = uint32(base)
+	return
+}
+func uint64Converter(in *string, _ ...interface{}) (out interface{}, err error) {
+	var base uint64
+	if base, err = strconv.ParseUint(specialChars.ReplaceAllString(*in, ""), 10, 64); err != nil {
+		return
+	}
+	out = base
+	return
+}
+
+// Convert a field's value to an int64.
+func IntConverter(t pkg.FieldType) pkg.FieldLevelConverter {
+	switch t {
+	case pkg.INT8:
+		return int8Converter
+	case pkg.INT16:
+		return int16Converter
+	case pkg.INT:
+		fallthrough
+	case pkg.INT32:
+		return int32Converter
+	case pkg.INT64:
+		return int64Converter
+	case pkg.UINT8:
+		return uint8Converter
+	case pkg.UINT16:
+		return uint16Converter
+	case pkg.UINT:
+		fallthrough
+	case pkg.UINT32:
+		return uint32Converter
+	case pkg.UINT64:
+		return uint64Converter
+	default:
+		panic(fmt.Sprintf("types/convert: Int %s not supported", t.String()))
+	}
 }
 
 // Convert a field's value to an float64.
-func FloatConverter(in *string, _ ...interface{}) (interface{}, error) {
+func float32Converter(in *string, _ ...interface{}) (out interface{}, err error) {
+	var base float64
 	rmSpecialChars := specialChars.ReplaceAllString(*in, "")
-	out, err := strconv.ParseFloat(rmSpecialChars, 64)
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("can not convert \"%s\" to float, parsing error: %s", *in, err.Error()))
+	if base, err = strconv.ParseFloat(rmSpecialChars, 32); err != nil {
+		return
+	} else {
+		out = float32(base)
 	}
-	return out, nil
+	return out, err
+}
+
+// Convert a field's value to an float64.
+func float64Converter(in *string, _ ...interface{}) (out interface{}, err error) {
+	var base float64
+	rmSpecialChars := specialChars.ReplaceAllString(*in, "")
+	if base, err = strconv.ParseFloat(rmSpecialChars, 64); err != nil {
+		return
+	} else {
+		out = base
+	}
+	return out, err
+}
+
+// Convert a field's value to an float64.
+func FloatConverter(t pkg.FieldType) pkg.FieldLevelConverter {
+	switch t {
+	case pkg.FLOAT32:
+		return float32Converter
+	case pkg.FLOAT:
+		fallthrough
+	case pkg.FLOAT64:
+		return float64Converter
+	default:
+		panic(fmt.Sprintf("types/convert: float %s not supported", t.String()))
+	}
+
 }
 
 // Convert a field's value to an time instance.

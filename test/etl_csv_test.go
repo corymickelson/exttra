@@ -590,7 +590,7 @@ func filingtracker(testFile string) (Composer, error) {
 		STRING,
 		nullable)
 	floatNilable, err := types.NewField(
-		FLOAT,
+		FLOAT32,
 		nullable)
 
 	reportDate := InterrogateDate(&testFile)
