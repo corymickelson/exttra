@@ -14,10 +14,10 @@ type (
 
 	Field struct {
 		T         pkg.FieldType
-		Nil       *pkg.Nullable
 		convert   pkg.FieldLevelConverter
 		toString  pkg.StringifyField
 		Extension pkg.FieldExtension
+		Nil       *pkg.Nullable
 	}
 )
 
@@ -150,12 +150,34 @@ func NewField(fieldType pkg.FieldType, nullable *pkg.Nullable, opts ...FieldOver
 	} else {
 		field.toString = SimpleToString
 		switch field.T {
+		case pkg.INT8:
+			field.convert = IntConverter(pkg.INT8)
+		case pkg.INT16:
+			field.convert = IntConverter(pkg.INT16)
 		case pkg.INT:
-			field.convert = IntConverter
+			fallthrough
+		case pkg.INT32:
+			field.convert = IntConverter(pkg.INT32)
+		case pkg.INT64:
+			field.convert = IntConverter(pkg.INT64)
+		case pkg.UINT8:
+			field.convert = IntConverter(pkg.UINT8)
+		case pkg.UINT16:
+			field.convert = IntConverter(pkg.UINT16)
+		case pkg.UINT:
+			fallthrough
+		case pkg.UINT32:
+			field.convert = IntConverter(pkg.UINT32)
+		case pkg.UINT64:
+			field.convert = IntConverter(pkg.UINT64)
 		case pkg.BOOL:
 			field.convert = BoolConverter
+		case pkg.FLOAT32:
+			field.convert = FloatConverter(pkg.FLOAT32)
 		case pkg.FLOAT:
-			field.convert = FloatConverter
+			fallthrough
+		case pkg.FLOAT64:
+			field.convert = FloatConverter(pkg.FLOAT64)
 		case pkg.TIMESTAMP:
 			fallthrough
 		case pkg.DATE:
@@ -168,7 +190,7 @@ func NewField(fieldType pkg.FieldType, nullable *pkg.Nullable, opts ...FieldOver
 	}
 	for _, opt := range opts {
 		if fieldWithOpt, err := opt(&field); err != nil {
-			pkg.FatalDefect(&pkg.Defect{
+			pkg.FatalDefect(pkg.Defect{
 				Msg: err.Error(),
 			})
 		} else {

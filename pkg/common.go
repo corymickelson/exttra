@@ -11,8 +11,20 @@ type (
 )
 
 const (
-	INT FieldType = iota
+	// INT FieldType = iota
+	INT8 FieldType = iota
+	INT16
+	INT
+	INT32
+	INT64
+	UINT8
+	UINT16
+	UINT
+	UINT32
+	UINT64
+	FLOAT32
 	FLOAT
+	FLOAT64
 	STRING
 	TIMESTAMP
 	DATE
@@ -23,5 +35,26 @@ const (
 )
 
 func (dt FieldType) String() string {
-	return [...]string{"INT", "FLOAT", "STRING", "TIMESTAMP", "DATE", "CUSTOM", "BOOL", "NULL", "UNKNOWN"}[dt]
+	return [...]string{
+		"INT8",
+		"INT16",
+		"INT",
+		"INT32",
+		"INT64",
+		"UINT8",
+		"UINT16",
+		"UINT",
+		"UINT32",
+		"UINT64",
+		"FLOAT32",
+		"FLOAT",
+		"FLOAT64",
+		"STRING",
+		"TIMESTAMP",
+		"DATE",
+		"CUSTOM",
+		"BOOL",
+		"NULL",
+		"UNKNOWN",
+	}[dt]
 }

@@ -84,7 +84,7 @@ func (i *FlatFile) Flush() error {
 	column := make(chan pkg.Pair)
 	sent := 0
 	complete := 0
-	for id, v := range root.Children() {
+	for id, v := range *root.Children() {
 		if pkg.IsNil(v) || root.Null()[id] {
 			continue
 		}
@@ -103,7 +103,7 @@ func (i *FlatFile) Flush() error {
 				i.header = rows[0]
 				err := writer.WriteAll(rows)
 				if err != nil {
-					pkg.FatalDefect(&pkg.Defect{
+					pkg.FatalDefect(pkg.Defect{
 						Msg: err.Error(),
 					})
 				}
@@ -171,7 +171,7 @@ func (i *FlatFile) buildColumn(out chan pkg.Pair, n pkg.Composer, colIdx int) {
 		format = f
 	}
 	excludes := i.src.(pkg.Editor).Excludes()
-	for _, v := range n.Children() {
+	for _, v := range *n.Children() {
 		_, _, row := v.Id()
 		if excludes[row] {
 			continue

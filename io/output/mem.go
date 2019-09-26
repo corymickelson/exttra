@@ -51,8 +51,8 @@ func (i *Memory) leftMostNode() (pkg.Composer, error) {
 	// Left most node in the tree
 	var lhs pkg.Composer
 	// Doesnt matter which child, just pick one
-	for id := range i.src.Children() {
-		lhs = i.src.Children()[id]
+	for id := range *i.src.Children() {
+		lhs = (*i.src.Children())[id]
 		break
 	}
 	if lhs == nil {
@@ -98,7 +98,7 @@ func (i *Memory) Flush() error {
 		return err
 	}
 	excludes := i.src.(pkg.Editor).Excludes()
-	for _, v := range lhs.Children() {
+	for _, v := range *lhs.Children() {
 		_, _, row := v.Id()
 		if excludes[row] {
 			continue
@@ -191,6 +191,10 @@ func (i *Memory) fillShape(out chan interface{}, quit chan error, n pkg.Composer
 			if field.Type.Kind() == reflect.Float64 {
 				cpy.FieldByIndex(field.Index).SetFloat(n.Value().(float64))
 			}
+		case float32:
+			if field.Type.Kind() == reflect.Float32 {
+				cpy.FieldByIndex(field.Index).Set(reflect.ValueOf(n.Value().(float32)))
+			}
 		case bool:
 			if field.Type.Kind() == reflect.Bool {
 				cpy.FieldByIndex(field.Index).SetBool(n.Value().(bool))
@@ -204,6 +208,34 @@ func (i *Memory) fillShape(out chan interface{}, quit chan error, n pkg.Composer
 		case int64:
 			if field.Type.Kind() == reflect.Int64 {
 				cpy.FieldByIndex(field.Index).SetInt(n.Value().(int64))
+			}
+		case int32:
+			if field.Type.Kind() == reflect.Int32 {
+				cpy.FieldByIndex(field.Index).Set(reflect.ValueOf(n.Value().(int32)))
+			}
+		case int16:
+			if field.Type.Kind() == reflect.Int16 {
+				cpy.FieldByIndex(field.Index).Set(reflect.ValueOf(n.Value().(int16)))
+			}
+		case int8:
+			if field.Type.Kind() == reflect.Int8 {
+				cpy.FieldByIndex(field.Index).Set(reflect.ValueOf(n.Value().(int8)))
+			}
+		case uint64:
+			if field.Type.Kind() == reflect.Uint64 {
+				cpy.FieldByIndex(field.Index).SetUint(n.Value().(uint64))
+			}
+		case uint32:
+			if field.Type.Kind() == reflect.Uint32 {
+				cpy.FieldByIndex(field.Index).Set(reflect.ValueOf(n.Value().(uint32)))
+			}
+		case uint16:
+			if field.Type.Kind() == reflect.Uint16 {
+				cpy.FieldByIndex(field.Index).Set(reflect.ValueOf(n.Value().(uint16)))
+			}
+		case uint8:
+			if field.Type.Kind() == reflect.Uint8 {
+				cpy.FieldByIndex(field.Index).Set(reflect.ValueOf(n.Value().(uint8)))
 			}
 		default:
 			quit <- errors.New("output/Memory: unknown type, supported types are: string, float64, int64, bool, time.Time")

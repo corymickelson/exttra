@@ -101,13 +101,13 @@ func (def *Defect) Error() string {
 // logging is NOT fatal, if a function uses LogDefect
 // it's the responsibility of the function implementation/caller
 // to set sentinel return value(s) and handle nils
-func LogDefect(d *Defect) {
+func LogDefect(d Defect) {
 	if d.Keys == nil {
 		d.Keys = map[string]string{}
 	}
 	defs := NewDC()
 	if defs.(*Defects).enabled {
-		defs.(*Defects).coll = append(defs.(*Defects).coll, d)
+		defs.(*Defects).coll = append(defs.(*Defects).coll, &d)
 	} else {
 		log.Printf("defect: %s", d.Msg)
 	}
@@ -117,13 +117,13 @@ func LogDefect(d *Defect) {
 // The defect will be added to the global defector object
 // To capture collected defects before the process exits
 // set the FatalExitInterrupt
-func FatalDefect(d *Defect) {
+func FatalDefect(d Defect) {
 	if d.Keys == nil {
 		d.Keys = map[string]string{}
 	}
 	defs := NewDC().(*Defects)
 	if defs.enabled {
-		defs.coll = append(defs.coll, d)
+		defs.coll = append(defs.coll, &d)
 		if defs.exitInterrupt != nil {
 			defs.exitInterrupt(defs.coll)
 		}

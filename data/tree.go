@@ -12,20 +12,20 @@ import (
 type (
 	node struct {
 		id       uint64
-		name     string
-		v        interface{}
-		parent   pkg.Composer
-		t        *pkg.FieldType
-		children map[uint64]pkg.Composer
-		nm       []map[uint64]bool
-		nullable *pkg.Nullable
-		version  uint
-		next     pkg.Composer
-		prev     pkg.Composer
 		min      uint64
 		max      uint64
+		t        pkg.FieldType // 32
+		v        interface{} // 16
+		name     string
+		version  uint          // 32
 		mutex    sync.RWMutex
+		nullable pkg.Nullable
+		parent   pkg.Composer
+		next     pkg.Composer
+		prev     pkg.Composer
 		index    map[interface{}][]uint64
+		children map[uint64]pkg.Composer
+		nm       []map[uint64]bool
 	}
 
 	Opt func(*node) (*node, error)
@@ -51,7 +51,9 @@ func NewNode(id *uint64, opts ...Opt) (pkg.Composer, error) {
 		i.id = *id
 	}
 	i.parent = nil
+	i.v = nil
 	i.nm = make([]map[uint64]bool, 1)
+	i.t = pkg.UNKNOWN
 	// initialize parser  nilmap
 	i.nm[0] = make(map[uint64]bool)
 	i.children = make(map[uint64]pkg.Composer)
@@ -79,17 +81,19 @@ func Index(b bool) Opt {
 }
 
 // Set the nullable property of a node
+// nullable is copied NOT referenced by the node
 func Nullable(nullable *pkg.Nullable) Opt {
 	return func(n *node) (*node, error) {
-		n.nullable = nullable
+		n.nullable = *nullable
 		return n, nil
 	}
 }
 
 // Add the type [t] of value held by this node.
+// t is copied NOT referenced by the node
 func Type(t *pkg.FieldType) Opt {
 	return func(n *node) (*node, error) {
-		n.t = t
+		n.t = *t
 		return n, nil
 	}
 }
@@ -125,8 +129,10 @@ func (i *node) Value() interface{} {
 }
 
 // Get a nodes children
-func (i *node) Children() map[uint64]pkg.Composer {
-	return i.children
+// returns a reference to the children map
+// The child should NOT be mutated, a reference is used to mitigate a potentially large copy operation
+func (i *node) Children() *map[uint64]pkg.Composer {
+	return &i.children
 }
 
 // Get a nodes name
@@ -253,7 +259,7 @@ func (i *node) Id() (uint64, uint32, uint32) {
 }
 
 // Get the Type of this node
-func (i *node) T() *pkg.FieldType {
+func (i *node) T() pkg.FieldType {
 	return i.t
 }
 
@@ -360,7 +366,7 @@ func (i *node) Excludes() []bool {
 		if col.(*node).nullable.Allowed {
 			continue
 		}
-		for _, vv := range col.Children() {
+		for _, vv := range *col.Children() {
 			id, _, row := vv.Id()
 			if ex, _ := col.(*node).Excluded(id); ex {
 				excludes[row] = true
@@ -369,12 +375,13 @@ func (i *node) Excludes() []bool {
 	}
 	return excludes
 }
-func (i *node) Nullable() *pkg.Nullable {
+func (i *node) Nullable() pkg.Nullable {
 	return i.nullable
 }
-func (i *node) LockWhile(fn func()) {
-	n := root(i)
-	n.mutex.RLock()
-	defer n.mutex.RUnlock()
-	fn()
-}
+
+// func (i *node) LockWhile(fn func()) {
+// 	n := root(i)
+// 	n.mutex.RLock()
+// 	defer n.mutex.RUnlock()
+// 	fn()
+// }

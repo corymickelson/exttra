@@ -2,8 +2,9 @@ package input
 
 import (
 	"encoding/csv"
-	"github.com/loanpal-engineering/exttra/types"
 	"io"
+
+	"github.com/loanpal-engineering/exttra/types"
 )
 
 type (

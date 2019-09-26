@@ -51,11 +51,11 @@ func assertTypeIn(ts []FieldType, l, r Composer) (*FieldType, error) {
 		if rOk && lOk {
 			break
 		}
-		if l.T() != nil && *l.T() == tt {
+		if l.T() != UNKNOWN && l.T() == tt {
 			lt = tt
 			lOk = true
 		}
-		if r.T() != nil && *r.T() == tt {
+		if r.T() != UNKNOWN && r.T() == tt {
 			rt = tt
 			rOk = true
 		}
@@ -78,7 +78,7 @@ func applyToT(t interface{}, out chan map[uint32]interface{}, op func(l, r inter
 		fixed   = r.Max() == 0
 	)
 	excludes := l.(Editor).Excludes()
-	for _, ll := range l.Children() {
+	for _, ll := range *l.Children() {
 		var (
 			lv = ll.Value()
 			rv interface{}
@@ -111,12 +111,102 @@ func applyToT(t interface{}, out chan map[uint32]interface{}, op func(l, r inter
 			} else {
 				results[row] = op(lv, rv)
 			}
+		case float32:
+			if _, ok := lv.(float32); !ok {
+				log.Printf("can not cast \"%v\" to float", lv)
+				results[row] = nil
+			} else if _, ok := rv.(float32); !ok {
+				log.Printf("can not cast \"%v\" to float", rv)
+				results[row] = nil
+			} else {
+				results[row] = op(lv, rv)
+			}
 		case float64:
 			if _, ok := lv.(float64); !ok {
 				log.Printf("can not cast \"%v\" to float", lv)
 				results[row] = nil
 			} else if _, ok := rv.(float64); !ok {
 				log.Printf("can not cast \"%v\" to float", rv)
+				results[row] = nil
+			} else {
+				results[row] = op(lv, rv)
+			}
+		case int64:
+			if _, ok := lv.(int64); !ok {
+				log.Printf("can not cast \"%v\" to int", lv)
+				results[row] = nil
+			} else if _, ok := rv.(int64); !ok {
+				log.Printf("can not cast \"%v\" to int", rv)
+				results[row] = nil
+			} else {
+				results[row] = op(lv, rv)
+			}
+		case uint64:
+			if _, ok := lv.(uint64); !ok {
+				log.Printf("can not cast \"%v\" to int", lv)
+				results[row] = nil
+			} else if _, ok := rv.(uint64); !ok {
+				log.Printf("can not cast \"%v\" to int", rv)
+				results[row] = nil
+			} else {
+				results[row] = op(lv, rv)
+			}
+		case int32:
+			if _, ok := lv.(int32); !ok {
+				log.Printf("can not cast \"%v\" to int", lv)
+				results[row] = nil
+			} else if _, ok := rv.(int32); !ok {
+				log.Printf("can not cast \"%v\" to int", rv)
+				results[row] = nil
+			} else {
+				results[row] = op(lv, rv)
+			}
+		case uint32:
+			if _, ok := lv.(uint32); !ok {
+				log.Printf("can not cast \"%v\" to int", lv)
+				results[row] = nil
+			} else if _, ok := rv.(uint32); !ok {
+				log.Printf("can not cast \"%v\" to int", rv)
+				results[row] = nil
+			} else {
+				results[row] = op(lv, rv)
+			}
+		case int16:
+			if _, ok := lv.(int16); !ok {
+				log.Printf("can not cast \"%v\" to int", lv)
+				results[row] = nil
+			} else if _, ok := rv.(int16); !ok {
+				log.Printf("can not cast \"%v\" to int", rv)
+				results[row] = nil
+			} else {
+				results[row] = op(lv, rv)
+			}
+		case uint16:
+			if _, ok := lv.(uint16); !ok {
+				log.Printf("can not cast \"%v\" to int", lv)
+				results[row] = nil
+			} else if _, ok := rv.(uint16); !ok {
+				log.Printf("can not cast \"%v\" to int", rv)
+				results[row] = nil
+			} else {
+				results[row] = op(lv, rv)
+			}
+		case int8:
+			if _, ok := lv.(int8); !ok {
+				log.Printf("can not cast \"%v\" to int", lv)
+				results[row] = nil
+			} else if _, ok := rv.(int8); !ok {
+				log.Printf("can not cast \"%v\" to int", rv)
+				results[row] = nil
+			} else {
+				results[row] = op(lv, rv)
+			}
+		case uint8:
+			if _, ok := lv.(uint8); !ok {
+				log.Printf("can not cast \"%v\" to int", lv)
+				results[row] = nil
+			} else if _, ok := rv.(uint8); !ok {
+				log.Printf("can not cast \"%v\" to int", rv)
 				results[row] = nil
 			} else {
 				results[row] = op(lv, rv)
@@ -149,29 +239,42 @@ func applyToT(t interface{}, out chan map[uint32]interface{}, op func(l, r inter
 }
 func (lt Lt) Apply() (map[uint32]interface{}, FieldType) {
 	var (
-		t   *FieldType
-		err error
+		t       *FieldType
+		err     error
+		outType = BOOL
 	)
 	if t, err = assertTypeIn(
-		[]FieldType{INT, TIMESTAMP, FLOAT, DATE, STRING}, lt.Lhs, lt.Rhs); err != nil {
+		[]FieldType{UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64, TIMESTAMP, FLOAT32, FLOAT64, DATE, STRING}, lt.Lhs, lt.Rhs); err != nil {
 		log.Fatal(err)
 	}
 	out := make(chan map[uint32]interface{})
-	var outType FieldType
 	switch *t {
 	case STRING:
 		go applyToT("", out, func(lv, rv interface{}) interface{} { return lv.(string) < rv.(string) }, lt.Lhs, lt.Rhs)
-		outType = BOOL
-	case INT:
-		fallthrough
-	case FLOAT:
+	case UINT64:
+		go applyToT(uint64(0), out, func(l, r interface{}) interface{} { return l.(uint64) < r.(uint64) }, lt.Lhs, lt.Rhs)
+	case UINT32:
+		go applyToT(uint32(0), out, func(l, r interface{}) interface{} { return l.(uint) < r.(uint) }, lt.Lhs, lt.Rhs)
+	case UINT16:
+		go applyToT(uint16(0), out, func(l, r interface{}) interface{} { return l.(uint) < r.(uint) }, lt.Lhs, lt.Rhs)
+	case UINT8:
+		go applyToT(uint8(8), out, func(l, r interface{}) interface{} { return l.(uint) < r.(uint) }, lt.Lhs, lt.Rhs)
+	case INT64:
+		go applyToT(int64(0), out, func(l, r interface{}) interface{} { return l.(int64) < r.(int64) }, lt.Lhs, lt.Rhs)
+	case INT32:
+		go applyToT(int32(0), out, func(l, r interface{}) interface{} { return l.(int) < r.(int) }, lt.Lhs, lt.Rhs)
+	case INT16:
+		go applyToT(int16(0), out, func(l, r interface{}) interface{} { return l.(int) < r.(int) }, lt.Lhs, lt.Rhs)
+	case INT8:
+		go applyToT(int8(8), out, func(l, r interface{}) interface{} { return l.(int) < r.(int) }, lt.Lhs, lt.Rhs)
+	case FLOAT32:
+		go applyToT(float32(0), out, func(l, r interface{}) interface{} { return l.(float32) < r.(float32) }, lt.Lhs, lt.Rhs)
+	case FLOAT64:
 		go applyToT(float64(0), out, func(l, r interface{}) interface{} { return l.(float64) < r.(float64) }, lt.Lhs, lt.Rhs)
-		outType = BOOL
 	case DATE:
 		fallthrough
 	case TIMESTAMP:
 		go applyToT(time.Time{}, out, func(lv, rv interface{}) interface{} { return lv.(time.Time).Unix() < rv.(time.Time).Unix() }, lt.Lhs, lt.Rhs)
-		outType = BOOL
 	default:
 		log.Fatal("can not apply unknown in expression")
 	}
@@ -184,25 +287,38 @@ func (gt Gt) Apply() (map[uint32]interface{}, FieldType) {
 		err error
 	)
 	if t, err = assertTypeIn(
-		[]FieldType{INT, TIMESTAMP, FLOAT, DATE, STRING}, gt.Lhs, gt.Rhs); err != nil {
+		[]FieldType{UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64, TIMESTAMP, FLOAT32, FLOAT64, DATE, STRING}, gt.Lhs, gt.Rhs); err != nil {
 		log.Fatal(err)
 	}
 	out := make(chan map[uint32]interface{})
-	var outType FieldType
+	outType := BOOL
 	switch *t {
 	case STRING:
 		go applyToT("", out, func(lv, rv interface{}) interface{} { return lv.(string) > rv.(string) }, gt.Lhs, gt.Rhs)
-		outType = BOOL
-	case INT:
-		fallthrough
-	case FLOAT:
+	case UINT64:
+		go applyToT(uint64(0), out, func(l, r interface{}) interface{} { return l.(uint64) > r.(uint64) }, gt.Lhs, gt.Rhs)
+	case UINT32:
+		go applyToT(uint32(0), out, func(l, r interface{}) interface{} { return l.(uint) > r.(uint) }, gt.Lhs, gt.Rhs)
+	case UINT16:
+		go applyToT(uint16(0), out, func(l, r interface{}) interface{} { return l.(uint) > r.(uint) }, gt.Lhs, gt.Rhs)
+	case UINT8:
+		go applyToT(uint8(8), out, func(l, r interface{}) interface{} { return l.(uint) > r.(uint) }, gt.Lhs, gt.Rhs)
+	case INT64:
+		go applyToT(int64(0), out, func(l, r interface{}) interface{} { return l.(int64) > r.(int64) }, gt.Lhs, gt.Rhs)
+	case INT32:
+		go applyToT(int32(0), out, func(l, r interface{}) interface{} { return l.(int) > r.(int) }, gt.Lhs, gt.Rhs)
+	case INT16:
+		go applyToT(int16(0), out, func(l, r interface{}) interface{} { return l.(int) > r.(int) }, gt.Lhs, gt.Rhs)
+	case INT8:
+		go applyToT(int8(8), out, func(l, r interface{}) interface{} { return l.(int) > r.(int) }, gt.Lhs, gt.Rhs)
+	case FLOAT32:
+		go applyToT(float32(0), out, func(l, r interface{}) interface{} { return l.(float32) > r.(float32) }, gt.Lhs, gt.Rhs)
+	case FLOAT64:
 		go applyToT(float64(0), out, func(l, r interface{}) interface{} { return l.(float64) > r.(float64) }, gt.Lhs, gt.Rhs)
-		outType = BOOL
 	case DATE:
 		fallthrough
 	case TIMESTAMP:
 		go applyToT(time.Time{}, out, func(lv, rv interface{}) interface{} { return lv.(time.Time).Unix() > rv.(time.Time).Unix() }, gt.Lhs, gt.Rhs)
-		outType = BOOL
 	default:
 		log.Fatal("can not apply unknown in expression")
 	}
@@ -223,30 +339,42 @@ func (eq Eq) Apply() (map[uint32]interface{}, FieldType) {
 		return nm, BOOL
 	}
 	if t, err = assertTypeIn(
-		[]FieldType{INT, TIMESTAMP, FLOAT, DATE, STRING, BOOL}, eq.Lhs, eq.Rhs); err != nil {
+		[]FieldType{UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64, TIMESTAMP, FLOAT32, FLOAT64, DATE, STRING, BOOL}, eq.Lhs, eq.Rhs); err != nil {
 		log.Fatal(err)
 	}
 	out := make(chan map[uint32]interface{})
-	var outType FieldType
+	outType := BOOL
 	switch *t {
 	case STRING:
 		go applyToT("", out, func(lv, rv interface{}) interface{} { return lv.(string) == rv.(string) }, eq.Lhs, eq.Rhs)
-		outType = BOOL
-	case INT:
-		fallthrough
-	case FLOAT:
+	case UINT64:
+		go applyToT(uint64(0), out, func(l, r interface{}) interface{} { return l.(uint64) == r.(uint64) }, eq.Lhs, eq.Rhs)
+	case UINT32:
+		go applyToT(uint32(0), out, func(l, r interface{}) interface{} { return l.(uint) == r.(uint) }, eq.Lhs, eq.Rhs)
+	case UINT16:
+		go applyToT(uint16(0), out, func(l, r interface{}) interface{} { return l.(uint) == r.(uint) }, eq.Lhs, eq.Rhs)
+	case UINT8:
+		go applyToT(uint8(8), out, func(l, r interface{}) interface{} { return l.(uint) == r.(uint) }, eq.Lhs, eq.Rhs)
+	case INT64:
+		go applyToT(int64(0), out, func(l, r interface{}) interface{} { return l.(int64) == r.(int64) }, eq.Lhs, eq.Rhs)
+	case INT32:
+		go applyToT(int32(0), out, func(l, r interface{}) interface{} { return l.(int) == r.(int) }, eq.Lhs, eq.Rhs)
+	case INT16:
+		go applyToT(int16(0), out, func(l, r interface{}) interface{} { return l.(int) == r.(int) }, eq.Lhs, eq.Rhs)
+	case INT8:
+		go applyToT(int8(8), out, func(l, r interface{}) interface{} { return l.(int) == r.(int) }, eq.Lhs, eq.Rhs)
+	case FLOAT32:
+		go applyToT(float32(0), out, func(l, r interface{}) interface{} { return l.(float32) == r.(float32) }, eq.Lhs, eq.Rhs)
+	case FLOAT64:
 		go applyToT(float64(0), out, func(l, r interface{}) interface{} { return l.(float64) == r.(float64) }, eq.Lhs, eq.Rhs)
-		outType = BOOL
 	case DATE:
 		fallthrough
 	case TIMESTAMP:
 		go applyToT(time.Time{}, out, func(lv, rv interface{}) interface{} { return lv.(time.Time).Unix() == rv.(time.Time).Unix() }, eq.Lhs, eq.Rhs)
-		outType = BOOL
 	case BOOL:
 		go applyToT(true, out, func(l, r interface{}) interface{} {
 			return l.(bool) == r.(bool)
 		}, eq.Lhs, eq.Rhs)
-		outType = BOOL
 	default:
 		log.Fatal("can not apply unknown in expression")
 	}
